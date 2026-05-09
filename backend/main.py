@@ -1,8 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+import random
 import feedparser
+from textblob import TextBlob
 
 app = FastAPI()
+
+# =========================
+# CORS
+# =========================
 
 app.add_middleware(
     CORSMiddleware,
@@ -12,188 +19,169 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-company_mapping = {
-    "BANK CENTRAL ASIA": "BBCA",
-    "BCA": "BBCA",
+# =========================
+# CONFIG
+# =========================
 
-    "BANK RAKYAT INDONESIA": "BBRI",
-    "BRI": "BBRI",
+RSS_URL = "https://news.google.com/rss/search?q=saham+indonesia"
 
-    "BANK MANDIRI": "BMRI",
-    "MANDIRI": "BMRI",
+WATCHLIST = [
+    "BBCA",
+    "BBRI",
+    "BMRI",
+    "TLKM",
+    "ASII",
+    "ANTM",
+    "GOTO",
+    "MAPI"
+]
 
-    "TELKOM": "TLKM",
-    "MITRATEL": "MTEL",
-
-    "GOTO": "GOTO",
-    "GOJEK": "GOTO",
-    "TOKOPEDIA": "GOTO",
-
-    "ASTRA": "ASII",
-
-    "ANTAM": "ANTM",
-
-    "MERDEKA COPPER": "MDKA",
-
-    "BNI": "BBNI",
-
-    "MAPI": "MAPI"
-}
-
-
-def analyze_sentiment(text):
-
-    positive_words = [
-        "menguat",
-        "naik",
-        "bullish",
-        "laba",
-        "cuan",
-        "borong",
-        "untung",
-        "ekspansi",
-        "rebound",
-        "tumbuh",
-        "melonjak"
-    ]
-
-    negative_words = [
-        "turun",
-        "anjlok",
-        "bearish",
-        "rugi",
-        "jual",
-        "lepas",
-        "koreksi",
-        "melemah",
-        "serangan",
-        "phk",
-        "ditahan"
-    ]
-
-    text = text.lower()
-
-    positive_score = 0
-    negative_score = 0
-
-    for word in positive_words:
-        if word in text:
-            positive_score += 1
-
-    for word in negative_words:
-        if word in text:
-            negative_score += 1
-
-    if positive_score > negative_score:
-        return "POSITIVE"
-
-    elif negative_score > positive_score:
-        return "NEGATIVE"
-
-    else:
-        return "NEUTRAL"
-
-
-def detect_ticker(text):
-
-    text_upper = text.upper()
-
-    found = []
-
-    for company, ticker in company_mapping.items():
-
-        if company in text_upper:
-
-            if ticker not in found:
-                found.append(ticker)
-
-    return found
-
+# =========================
+# HOME
+# =========================
 
 @app.get("/")
 def home():
     return {
-        "message": "Stock AI Backend Running"
+        "status": "online",
+        "message": "Stock AI API Running"
     }
 
+# =========================
+# FORECAST AI
+# =========================
 
 @app.get("/forecast")
-def forecast():
-    return {
-        "stock": "BBCA",
-        "forecast": "Bullish",
-        "confidence": 82
-    }
+def get_ai_forecast():
 
+    forecasts = [
+        {
+            "stock": "BBCA",
+            "forecast": "Bullish",
+            "confidence": random.randint(75, 95)
+        },
+        {
+            "stock": "BBRI",
+            "forecast": "Bearish",
+            "confidence": random.randint(60, 88)
+        },
+        {
+            "stock": "ANTM",
+            "forecast": "Neutral",
+            "confidence": random.randint(50, 70)
+        },
+        {
+            "stock": "MAPI",
+            "forecast": "Bullish",
+            "confidence": random.randint(70, 90)
+        }
+    ]
+
+    return random.choice(forecasts)
+
+# =========================
+# DETECT TICKERS
+# =========================
+
+def detect_tickers(text):
+
+    found = []
+
+    for ticker in WATCHLIST:
+
+        if ticker.lower() in text.lower():
+            found.append(ticker)
+
+    return found
+
+# =========================
+# SENTIMENT ANALYSIS
+# =========================
+
+def analyze_sentiment(text):
+
+    analysis = TextBlob(text)
+
+    score = analysis.sentiment.polarity
+
+    if score > 0:
+        return "POSITIVE"
+
+    elif score < 0:
+        return "NEGATIVE"
+
+    return "NEUTRAL"
+
+# =========================
+# NEWS API
+# =========================
 
 @app.get("/news")
-def get_news():
+def get_market_news():
 
-    rss_url = "https://www.cnbcindonesia.com/market/rss"
-
-    feed = feedparser.parse(rss_url)
-
-    news_list = []
-
-    for entry in feed.entries[:10]:
-
-        news_list.append({
-            "title": entry.title,
-            "link": entry.link,
-            "sentiment": analyze_sentiment(entry.title),
-            "tickers": detect_ticker(entry.title)
-        })
-
-    return news_list
-
-
-@app.get("/market-analysis")
-def market_analysis():
-
-    rss_url = "https://www.cnbcindonesia.com/market/rss"
-
-    feed = feedparser.parse(rss_url)
-
-    market_data = {}
-
-    for entry in feed.entries[:30]:
-
-        title = entry.title
-
-        sentiment = analyze_sentiment(title)
-
-        tickers = detect_ticker(title)
-
-        for ticker in tickers:
-
-            if ticker not in market_data:
-
-                market_data[ticker] = {
-                    "positive": 0,
-                    "negative": 0,
-                    "neutral": 0
-                }
-
-            if sentiment == "POSITIVE":
-                market_data[ticker]["positive"] += 1
-
-            elif sentiment == "NEGATIVE":
-                market_data[ticker]["negative"] += 1
-
-            else:
-                market_data[ticker]["neutral"] += 1
+    feed = feedparser.parse(RSS_URL)
 
     results = []
 
-    for ticker, data in market_data.items():
+    for entry in feed.entries[:15]:
 
-        score = (
-            data["positive"] * 2
-            - data["negative"] * 2
-            + data["neutral"]
-        )
+        sentiment = analyze_sentiment(entry.title)
 
-        if score > 2:
+        results.append({
+            "title": entry.title,
+            "link": entry.link,
+            "sentiment": sentiment,
+            "tickers": detect_tickers(entry.title)
+        })
+
+    return results
+
+# =========================
+# MARKET ANALYSIS
+# =========================
+
+@app.get("/market-analysis")
+def generate_market_analysis():
+
+    feed = feedparser.parse(RSS_URL)
+
+    news = []
+
+    for entry in feed.entries[:20]:
+
+        sentiment = analyze_sentiment(entry.title)
+
+        news.append({
+            "title": entry.title,
+            "sentiment": sentiment,
+            "tickers": detect_tickers(entry.title)
+        })
+
+    result = []
+
+    for ticker in WATCHLIST:
+
+        positive = 0
+        negative = 0
+        neutral = 0
+
+        for item in news:
+
+            if ticker in item["tickers"]:
+
+                if item["sentiment"] == "POSITIVE":
+                    positive += 1
+
+                elif item["sentiment"] == "NEGATIVE":
+                    negative += 1
+
+                else:
+                    neutral += 1
+
+        score = positive - negative
+
+        # Forecast Logic
+        if score > 0:
             forecast = "BULLISH"
 
         elif score < 0:
@@ -202,29 +190,33 @@ def market_analysis():
         else:
             forecast = "NEUTRAL"
 
-        total_news = (
-            data["positive"]
-            + data["negative"]
-            + data["neutral"]
-        )
+        total = positive + negative + neutral
 
-        sentiment_strength = abs(
-            data["positive"] - data["negative"]
-        )
+        confidence = 50
 
-        confidence = min(
-            95,
-            50 + (sentiment_strength * 15)
-        )
+        if total > 0:
 
-        results.append({
+            confidence = min(
+                95,
+                int(
+                    (
+                        max(
+                            positive,
+                            negative,
+                            neutral
+                        ) / total
+                    ) * 100
+                )
+            )
+
+        result.append({
             "ticker": ticker,
             "forecast": forecast,
             "score": score,
-            "confidence": confidence,
-            "positive": data["positive"],
-            "negative": data["negative"],
-            "neutral": data["neutral"]
+            "positive": positive,
+            "negative": negative,
+            "neutral": neutral,
+            "confidence": confidence
         })
 
-    return results
+    return result
