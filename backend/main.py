@@ -7,9 +7,9 @@ from textblob import TextBlob
 
 app = FastAPI()
 
-# =========================
+# =====================================
 # CORS
-# =========================
+# =====================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,9 +19,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
+# =====================================
 # CONFIG
-# =========================
+# =====================================
 
 RSS_URL = "https://news.google.com/rss/search?q=saham+indonesia"
 
@@ -36,9 +36,9 @@ WATCHLIST = [
     "MAPI"
 ]
 
-# =========================
+# =====================================
 # HOME
-# =========================
+# =====================================
 
 @app.get("/")
 def home():
@@ -47,41 +47,37 @@ def home():
         "message": "Stock AI API Running"
     }
 
-# =========================
-# FORECAST AI
-# =========================
+# =====================================
+# FORECAST
+# =====================================
 
 @app.get("/forecast")
-def get_ai_forecast():
+def forecast():
 
     forecasts = [
         {
             "stock": "BBCA",
-            "forecast": "Bullish",
-            "confidence": random.randint(75, 95)
+            "forecast": "BULLISH",
+            "confidence": random.randint(78, 96)
         },
         {
             "stock": "BBRI",
-            "forecast": "Bearish",
-            "confidence": random.randint(60, 88)
+            "forecast": "BEARISH",
+            "confidence": random.randint(60, 85)
         },
         {
             "stock": "ANTM",
-            "forecast": "Neutral",
-            "confidence": random.randint(50, 70)
-        },
-        {
-            "stock": "MAPI",
-            "forecast": "Bullish",
-            "confidence": random.randint(70, 90)
+            "forecast": "NEUTRAL",
+            "confidence": random.randint(50, 75)
         }
     ]
 
     return random.choice(forecasts)
 
-# =========================
-# DETECT TICKERS
-# =========================
+# =====================================
+# DETECT TICKER
+# =====================================
+
 
 def detect_tickers(text):
 
@@ -94,15 +90,14 @@ def detect_tickers(text):
 
     return found
 
-# =========================
-# SENTIMENT ANALYSIS
-# =========================
+# =====================================
+# SENTIMENT
+# =====================================
+
 
 def analyze_sentiment(text):
 
-    analysis = TextBlob(text)
-
-    score = analysis.sentiment.polarity
+    score = TextBlob(text).sentiment.polarity
 
     if score > 0:
         return "POSITIVE"
@@ -112,36 +107,36 @@ def analyze_sentiment(text):
 
     return "NEUTRAL"
 
-# =========================
-# NEWS API
-# =========================
+# =====================================
+# NEWS
+# =====================================
 
 @app.get("/news")
-def get_market_news():
+def get_news():
 
     feed = feedparser.parse(RSS_URL)
 
-    results = []
+    result = []
 
-    for entry in feed.entries[:15]:
+    for entry in feed.entries[:10]:
 
         sentiment = analyze_sentiment(entry.title)
 
-        results.append({
+        result.append({
             "title": entry.title,
             "link": entry.link,
             "sentiment": sentiment,
             "tickers": detect_tickers(entry.title)
         })
 
-    return results
+    return result
 
-# =========================
+# =====================================
 # MARKET ANALYSIS
-# =========================
+# =====================================
 
 @app.get("/market-analysis")
-def generate_market_analysis():
+def market_analysis():
 
     feed = feedparser.parse(RSS_URL)
 
@@ -180,7 +175,6 @@ def generate_market_analysis():
 
         score = positive - negative
 
-        # Forecast Logic
         if score > 0:
             forecast = "BULLISH"
 
@@ -195,18 +189,9 @@ def generate_market_analysis():
         confidence = 50
 
         if total > 0:
-
             confidence = min(
                 95,
-                int(
-                    (
-                        max(
-                            positive,
-                            negative,
-                            neutral
-                        ) / total
-                    ) * 100
-                )
+                int((max(positive, negative, neutral) / total) * 100)
             )
 
         result.append({
