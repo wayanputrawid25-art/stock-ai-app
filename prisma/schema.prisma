@@ -71,3 +71,14 @@ model ActivityLog {
   @@index([userId, createdAt])
   @@map("activity_logs")
 }
+
+model LoginAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @db.VarChar(255)
+  success   Boolean  @default(false)
+  timestamp DateTime @default(now())
+
+  @@index([email, timestamp])
+  @@index([timestamp])
+  @@map("login_attempts")
+}
