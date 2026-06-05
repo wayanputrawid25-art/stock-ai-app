@@ -17,7 +17,13 @@ type SessionPayload = {
 };
 
 function secret() {
-  return process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "development-only-secret-change-me";
+  const value = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!value && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Missing JWT_SECRET or NEXTAUTH_SECRET environment variable. Set it in Vercel Project Settings > Environment Variables."
+    );
+  }
+  return value ?? "development-only-secret-change-me";
 }
 
 async function hmac(data: string) {
