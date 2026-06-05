@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Plan {
+  MONTHLY
+  YEARLY
+  LIFETIME
+}
+
+model User {
+  id           String            @id @default(uuid()) @db.Uuid
+  name         String            @db.VarChar(120)
+  email        String            @unique @db.VarChar(255)
+  passwordHash String            @map("password_hash")
+  role         Role              @default(USER)
+  plan         Plan              @default(MONTHLY)
+  active       Boolean           @default(true)
+  expiredAt    DateTime          @map("expired_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  results      Result[]
+  analyses     AnalysisHistory[]
+  logs         ActivityLog[]
+
+  @@map("users")
+}
+
+model Result {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  resultNumber String   @map("result_number") @db.VarChar(4)
+  drawDate     DateTime @map("draw_date") @db.Date
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resultNumber, drawDate])
+  @@index([userId, drawDate])
+  @@map("results")
+}
+
+model AnalysisHistory {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  analysisType String   @map("analysis_type") @db.VarChar(80)
+  resultJson   Json     @map("result_json") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("analysis_history")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String   @db.VarChar(180)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("activity_logs")
+}
