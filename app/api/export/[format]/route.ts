@@ -11,32 +11,50 @@ function rowsFromAnalysis(analysis: ReturnType<typeof analyzeResults>) {
 }
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ format: string }> }) {
-  const user = await requireUser();
-  const { format } = await params;
-  const results = await prisma.result.findMany({ where: { userId: user.id }, select: { resultNumber: true, drawDate: true } });
-  const rows = rowsFromAnalysis(analyzeResults(results));
-
-  if (format === "csv") {
-    return new NextResponse(toCsv(rows), {
-      headers: { "content-type": "text/csv", "content-disposition": "attachment; filename=prediction-report.csv" }
+  try {
+    const user = await requireUser();
+    const { format } = await params;
+    const results = await prisma.result.findMany({
+      where: { userId: user.id },
+      select: { resultNumber: true, drawDate: true }
     });
-  }
+    const rows = rowsFromAnalysis(analyzeResults(results));
 
-  if (format === "xlsx") {
-    return new NextResponse(await toXlsxBuffer(rows), {
-      headers: {
-        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "content-disposition": "attachment; filename=prediction-report.xlsx"
-      }
-    });
-  }
+    if (format === "csv") {
+      return new NextResponse(toCsv(rows), {
+        headers: {
+          "content-type": "text/csv; charset=utf-8",
+          "content-disposition": "attachment; filename=prediction-report.csv"
+        }
+      });
+    }
 
-  if (format === "pdf") {
-    const lines = rows.map((row) => `${row.position} #${row.rank} digit ${row.digit} score ${row.score} confidence ${row.confidence}%`);
-    return new NextResponse(toPdfBuffer("Frequency Analyzer 4D Pro - Prediction Report", lines), {
-      headers: { "content-type": "application/pdf", "content-disposition": "attachment; filename=prediction-report.pdf" }
-    });
-  }
+    if (format === "xlsx") {
+      const xlsxBuf = await toXlsxBuffer(rows);
+      return new NextResponse(xlsxBuf, {
+        headers: {
+          "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "content-disposition": "attachment; filename=prediction-report.xlsx"
+        }
+      });
+    }
 
-  return NextResponse.json({ error: "Unsupported export format" }, { status: 400 });
+    if (format === "pdf") {
+      const lines = rows.map(
+        (row) => `${row.position} #${row.rank} digit ${row.digit} score ${row.score} confidence ${row.confidence}%`
+      );
+      const pdfBuf = toPdfBuffer("Frequency Analyzer 4D Pro - Prediction Report", lines);
+      return new NextResponse(pdfBuf, {
+        headers: {
+          "content-type": "application/pdf",
+          "content-disposition": "attachment; filename=prediction-report.pdf"
+        }
+      });
+    }
+
+    return NextResponse.json({ error: "Unsupported export format" }, { status: 400 });
+  } catch (error) {
+    console.error("Export error:", error);
+    return NextResponse.json({ error: "Export failed" }, { status: 500 });
+  }
 }
