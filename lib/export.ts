@@ -45,14 +45,15 @@ export async function toXlsxBuffer(rows: Record<string, unknown>[], sheetName = 
   zip.folder("xl")!.file("workbook.xml", `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${xmlEscape(sheetName).slice(0, 31)}" sheetId="1" r:id="rId1"/></sheets></workbook>`);
   zip.folder("xl")!.folder("_rels")!.file("workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`);
   zip.folder("xl")!.folder("worksheets")!.file("sheet1.xml", `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`);
-  return zip.generateAsync({ type: "arraybuffer" });
+  // Return as Buffer (Node.js Buffer) for compatibility with NextResponse
+  return zip.generateAsync({ type: "nodebuffer" });
 }
 
 function pdfEscape(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
-export function toPdfBuffer(title: string, lines: string[]) {
+export function toPdfBuffer(title: string, lines: string[]): Buffer {
   const content = [`BT /F1 16 Tf 40 790 Td (${pdfEscape(title)}) Tj ET`]
     .concat(lines.slice(0, 42).map((line, index) => `BT /F1 10 Tf 40 ${760 - index * 16} Td (${pdfEscape(line)}) Tj ET`))
     .join("\n");
@@ -75,5 +76,5 @@ export function toPdfBuffer(title: string, lines: string[]) {
     pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
   });
   pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefAt}\n%%EOF`;
-  return new TextEncoder().encode(pdf).buffer;
+  return Buffer.from(pdf, "utf-8");
 }
