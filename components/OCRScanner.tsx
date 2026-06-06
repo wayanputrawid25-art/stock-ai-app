@@ -176,6 +176,7 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
               <>
                 <Icon type="loader" className="w-4 h-4 animate-spin" />
                 Scanning bold black digits...
+                Scanning...
               </>
             ) : (
               'Scan with OCR'
