@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useRef } from 'react';
+import { LoadingState } from '@/components/LoadingState';
 import { performOCR, extractNumbers, OCRProgress, OCRResult } from '@/lib/ocr-improved';
 
 interface OCRScannerProps {
@@ -68,7 +69,7 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
     if (!file) return;
 
     setLoading(true);
-    setProgress({ status: 'Initializing...', progress: 0 });
+    setProgress({ status: 'Preparing bold black digit scan...', progress: 8 });
 
     try {
       const ocrResult = await performOCR(file, (p) => setProgress(p));
@@ -174,12 +175,19 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
             {loading ? (
               <>
                 <Icon type="loader" className="w-4 h-4 animate-spin" />
+                Scanning bold black digits...
                 Scanning...
               </>
             ) : (
               'Scan with OCR'
             )}
           </button>
+
+          {loading && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+              <LoadingState variant="dots" message="OCR sedang membaca angka bold hitam..." />
+            </div>
+          )}
 
           {/* Progress Bar */}
           {loading && progress.progress > 0 && (

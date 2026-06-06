@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { extractFourDigitNumbers } from "@/lib/ocr-text";
 
 export const loginSchema = z.object({
   email: z.string().email().max(255).transform((value) => value.toLowerCase()),
@@ -21,5 +22,5 @@ export const resultInputSchema = z.object({
 });
 
 export function extractValid4D(input: string) {
-  return Array.from(new Set(input.match(/\b\d{4}\b/g) ?? []));
+  return extractFourDigitNumbers(input);
 }
