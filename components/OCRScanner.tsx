@@ -1,12 +1,42 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useRef } from 'react';
+import { LoadingState } from '@/components/LoadingState';
 import { performOCR, extractNumbers, OCRProgress, OCRResult } from '@/lib/ocr-improved';
-import { Upload, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 
 interface OCRScannerProps {
   onResult?: (result: OCRResult) => void;
   onNumbers?: (numbers: string[]) => void;
+}
+
+function Icon({
+  type,
+  className = '',
+}: {
+  type: 'upload' | 'alert' | 'check' | 'loader';
+  className?: string;
+}) {
+  if (type === 'loader') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z" />
+      </svg>
+    );
+  }
+
+  const paths = {
+    upload: 'M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
+    alert: 'M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+    check: 'M9 12.75 11.25 15 15.75 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  };
+
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d={paths[type]} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
@@ -39,7 +69,7 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
     if (!file) return;
 
     setLoading(true);
-    setProgress({ status: 'Initializing...', progress: 0 });
+    setProgress({ status: 'Preparing bold black digit scan...', progress: 8 });
 
     try {
       const ocrResult = await performOCR(file, (p) => setProgress(p));
@@ -51,6 +81,7 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
         onResult?.(ocrResult);
       }
     } catch (error) {
+      console.error('OCR scan failed:', error);
       setResult({
         text: '',
         confidence: 0,
@@ -110,7 +141,7 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
         />
 
         <div className="flex flex-col items-center gap-2">
-          <Upload className="w-8 h-8 text-gray-400" />
+          <Icon type="upload" className="w-8 h-8 text-gray-400" />
           <div>
             <p className="text-sm font-medium text-gray-700">
               Drag image here or click to select
@@ -125,10 +156,13 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
         <div className="space-y-4">
           {/* Mobile-optimized preview */}
           <div className="relative w-full rounded-lg overflow-hidden bg-gray-100">
-            <img
+            <Image
               src={preview}
               alt="Preview"
-              className="w-full h-auto max-h-80 object-contain"
+              width={960}
+              height={640}
+              unoptimized
+              className="h-auto max-h-80 w-full object-contain"
             />
           </div>
 
@@ -140,13 +174,19 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
           >
             {loading ? (
               <>
-                <Loader className="w-4 h-4 animate-spin" />
-                Scanning...
+                <Icon type="loader" className="w-4 h-4 animate-spin" />
+                Scanning bold black digits...
               </>
             ) : (
               'Scan with OCR'
             )}
           </button>
+
+          {loading && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+              <LoadingState variant="dots" message="OCR sedang membaca angka bold hitam..." />
+            </div>
+          )}
 
           {/* Progress Bar */}
           {loading && progress.progress > 0 && (
@@ -177,9 +217,9 @@ export function OCRScanner({ onResult, onNumbers }: OCRScannerProps) {
         >
           <div className="flex gap-2 items-start">
             {result.isSuccess ? (
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <Icon type="check" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <Icon type="alert" className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             )}
 
             <div className="flex-1 min-w-0">

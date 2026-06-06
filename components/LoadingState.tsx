@@ -1,11 +1,37 @@
 'use client';
 
-import { Loader, Zap, TrendingUp, BarChart3 } from 'lucide-react';
-
 interface LoadingStateProps {
   variant?: 'default' | 'skeleton' | 'pulse' | 'dots';
   message?: string;
   fullScreen?: boolean;
+}
+
+function SpinnerIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path
+        className="opacity-90"
+        fill="currentColor"
+        d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"
+      />
+    </svg>
+  );
+}
+
+function StatusIcon({ status }: { status: 'success' | 'error' | 'warning' }) {
+  const paths = {
+    success: 'M9 12.75 11.25 15 15.75 9.75',
+    error: 'M9.75 9.75 14.25 14.25M14.25 9.75 9.75 14.25',
+    warning: 'M12 8v4m0 4h.01',
+  };
+
+  return (
+    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d={paths[status]} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 /**
@@ -13,11 +39,13 @@ interface LoadingStateProps {
  */
 function DefaultLoader({ message }: { message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-8">
-      <div className="relative w-10 h-10">
-        <Loader className="w-10 h-10 text-blue-600 animate-spin" />
+    <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
+      <div className="relative grid h-16 w-16 place-items-center">
+        <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
+        <div className="absolute inset-2 rounded-full bg-gradient-to-tr from-blue-600 via-cyan-500 to-emerald-400 opacity-20 blur-sm animate-pulse" />
+        <SpinnerIcon className="relative h-12 w-12 animate-spin text-blue-600" />
       </div>
-      {message && <p className="text-sm text-gray-600 animate-pulse">{message}</p>}
+      {message && <p className="text-sm font-medium text-gray-600 animate-pulse">{message}</p>}
     </div>
   );
 }
@@ -29,9 +57,9 @@ function SkeletonLoader() {
   return (
     <div className="space-y-4 py-8">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="space-y-2">
-          <div className="h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-          <div className="h-4 w-5/6 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+        <div key={i} className="space-y-2 overflow-hidden rounded-lg border border-gray-100 bg-white p-3">
+          <div className="h-4 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-4 w-5/6 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
         </div>
       ))}
     </div>
@@ -44,11 +72,11 @@ function SkeletonLoader() {
 function DotsLoader({ message }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-8">
-      <div className="flex gap-1">
+      <div className="flex gap-1.5" aria-hidden="true">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"
+            className="h-2.5 w-2.5 rounded-full bg-blue-600 animate-bounce"
             style={{ animationDelay: `${i * 150}ms` }}
           />
         ))}
@@ -64,7 +92,10 @@ function DotsLoader({ message }: { message?: string }) {
 function PulseLoader({ message }: { message?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-8">
-      <div className="w-12 h-12 bg-blue-600 rounded-full animate-pulse" />
+      <div className="relative h-14 w-14">
+        <div className="absolute inset-0 rounded-full bg-blue-600/20 animate-ping" />
+        <div className="absolute inset-3 rounded-full bg-blue-600 animate-pulse" />
+      </div>
       {message && <p className="text-sm text-gray-600 animate-pulse">{message}</p>}
     </div>
   );
@@ -75,13 +106,13 @@ function PulseLoader({ message }: { message?: string }) {
  */
 export function SkeletonCard() {
   return (
-    <div className="p-4 bg-white rounded-lg border border-gray-200 space-y-3">
-      <div className="h-6 w-32 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+    <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+      <div className="h-6 w-32 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
       <div className="space-y-2">
-        <div className="h-4 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-        <div className="h-4 w-4/5 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+        <div className="h-4 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+        <div className="h-4 w-4/5 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
       </div>
-      <div className="h-24 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+      <div className="h-24 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
     </div>
   );
 }
@@ -94,8 +125,8 @@ export function DataTableSkeleton({ rows = 5 }: { rows?: number }) {
     <div className="space-y-3">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex gap-2">
-          <div className="flex-1 h-10 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
-          <div className="w-16 h-10 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded animate-pulse" />
+          <div className="h-10 flex-1 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-10 w-16 rounded bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse" />
         </div>
       ))}
     </div>
@@ -111,7 +142,7 @@ export function LoadingState({
   fullScreen = false,
 }: LoadingStateProps) {
   const containerClasses = fullScreen
-    ? 'fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-50'
+    ? 'fixed inset-0 z-50 flex items-center justify-center bg-white/85 backdrop-blur-md'
     : 'w-full';
 
   let content;
@@ -129,7 +160,12 @@ export function LoadingState({
       content = <DefaultLoader message={message} />;
   }
 
-  return <div className={containerClasses}>{content}</div>;
+  return (
+    <div className={containerClasses} role="status" aria-live="polite" aria-busy="true">
+      {content}
+      <span className="sr-only">{message ?? 'Loading'}</span>
+    </div>
+  );
 }
 
 /**
@@ -144,18 +180,18 @@ export function ProgressIndicator({
   total: number;
   label?: string;
 }) {
-  const percentage = (current / total) * 100;
+  const percentage = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
 
   return (
     <div className="space-y-2">
       {label && <p className="text-xs font-medium text-gray-700">{label}</p>}
-      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
         <div
-          className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ease-out"
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-xs text-gray-500 text-right">
+      <p className="text-right text-xs text-gray-500">
         {current} of {total}
       </p>
     </div>
@@ -179,20 +215,16 @@ export function StatusBadge({
     warning: 'bg-amber-100 text-amber-700',
   };
 
-  const icons = {
-    loading: <Loader className="w-3 h-3 animate-spin" />,
-    success: <Zap className="w-3 h-3" />,
-    error: <TrendingUp className="w-3 h-3" />,
-    warning: <BarChart3 className="w-3 h-3" />,
-  };
+  const icon =
+    status === 'loading' ? <SpinnerIcon className="h-3 w-3 animate-spin" /> : <StatusIcon status={status} />;
 
   return (
     <div
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${styles[status]} ${
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${styles[status]} ${
         animated && status === 'loading' ? 'animate-pulse' : ''
       }`}
     >
-      {icons[status]}
+      {icon}
       <span className="capitalize">{status}</span>
     </div>
   );

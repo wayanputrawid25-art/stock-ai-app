@@ -31,7 +31,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ format
 
     if (format === "xlsx") {
       const xlsxBuf = await toXlsxBuffer(rows);
-      return new NextResponse(xlsxBuf, {
+      return new NextResponse(new Uint8Array(xlsxBuf), {
         headers: {
           "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "content-disposition": "attachment; filename=prediction-report.xlsx"
@@ -44,7 +44,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ format
         (row) => `${row.position} #${row.rank} digit ${row.digit} score ${row.score} confidence ${row.confidence}%`
       );
       const pdfBuf = toPdfBuffer("Frequency Analyzer 4D Pro - Prediction Report", lines);
-      return new NextResponse(pdfBuf, {
+      return new NextResponse(new Uint8Array(pdfBuf), {
         headers: {
           "content-type": "application/pdf",
           "content-disposition": "attachment; filename=prediction-report.pdf"

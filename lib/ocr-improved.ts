@@ -3,7 +3,8 @@
  * Features: Image preprocessing, error handling, progress tracking
  */
 
-import Tesseract from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
+import { cleanOCRText, extractFourDigitNumbers, normalizeOCRDigits } from '@/lib/ocr-text';
 
 export interface OCRResult {
   text: string;
@@ -18,36 +19,47 @@ export interface OCRProgress {
   progress: number;
 }
 
-/**
- * Preprocess image for better OCR accuracy
- */
-function preprocessImage(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Cannot get canvas context');
+const DARK_PIXEL_THRESHOLD = 95;
+const OCR_SCALE = 3;
 
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+/**
+ * Preprocess image for screenshots that mix bold black 4D digits with light gray
+ * helper digits/grid lines. The threshold keeps only very dark pixels so OCR
+ * focuses on the bold black results, then upscales the image for cleaner digit
+ * recognition.
+ */
+function preprocessImage(sourceCanvas: HTMLCanvasElement): HTMLCanvasElement {
+  const outputCanvas = document.createElement('canvas');
+  outputCanvas.width = sourceCanvas.width * OCR_SCALE;
+  outputCanvas.height = sourceCanvas.height * OCR_SCALE;
+
+  const outputCtx = outputCanvas.getContext('2d');
+  if (!outputCtx) throw new Error('Cannot get canvas context');
+
+  outputCtx.imageSmoothingEnabled = false;
+  outputCtx.fillStyle = '#ffffff';
+  outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+  outputCtx.drawImage(sourceCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
+
+  const imageData = outputCtx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
   const data = imageData.data;
 
-  // Convert to grayscale and increase contrast
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
-
-    // Grayscale conversion
     const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    const isBoldDigitPixel = gray <= DARK_PIXEL_THRESHOLD;
+    const value = isBoldDigitPixel ? 0 : 255;
 
-    // Increase contrast
-    const contrast = 1.5;
-    const adjusted = Math.min(255, Math.max(0, (gray - 128) * contrast + 128));
-
-    data[i] = adjusted;
-    data[i + 1] = adjusted;
-    data[i + 2] = adjusted;
+    data[i] = value;
+    data[i + 1] = value;
+    data[i + 2] = value;
+    data[i + 3] = 255;
   }
 
-  ctx.putImageData(imageData, 0, 0);
-  return canvas;
+  outputCtx.putImageData(imageData, 0, 0);
+  return outputCanvas;
 }
 
 /**
@@ -126,7 +138,7 @@ export async function performOCR(
     // Perform OCR
     onProgress?.({ status: 'Processing with OCR...', progress: 60 });
 
-    const result = await Tesseract.recognize(processedCanvas, 'eng', {
+    const worker = await createWorker('eng', undefined, {
       logger: (m) => {
         if (m.status === 'recognizing') {
           onProgress?.({
@@ -137,16 +149,28 @@ export async function performOCR(
       },
     });
 
-    onProgress?.({ status: 'Finalizing...', progress: 95 });
+    try {
+      await worker.setParameters({
+        tessedit_char_whitelist: '0123456789',
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+        preserve_interword_spaces: '1',
+      });
 
-    const processingTime = Date.now() - startTime;
+      const result = await worker.recognize(processedCanvas);
 
-    return {
-      text: result.data.text.trim(),
-      confidence: result.data.confidence,
-      isSuccess: true,
-      processingTime,
-    };
+      onProgress?.({ status: 'Finalizing...', progress: 95 });
+
+      const processingTime = Date.now() - startTime;
+
+      return {
+        text: normalizeOCRDigits(result.data.text),
+        confidence: result.data.confidence,
+        isSuccess: true,
+        processingTime,
+      };
+    } finally {
+      await worker.terminate();
+    }
   } catch (error) {
     const processingTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -164,18 +188,11 @@ export async function performOCR(
 /**
  * Validate and clean OCR text
  */
-export function cleanOCRText(text: string): string {
-  return text
-    .replace(/\s+/g, ' ') // Remove extra whitespace
-    .replace(/[^\w\s\d]/g, '') // Remove special characters
-    .trim();
-}
+export { cleanOCRText, normalizeOCRDigits };
 
 /**
  * Extract numbers from OCR text (useful for 4D results)
  */
 export function extractNumbers(text: string): string[] {
-  const numberPattern = /\d+/g;
-  const matches = text.match(numberPattern) || [];
-  return matches.filter((num) => num.length <= 4); // Assume max 4 digits for 4D
+  return extractFourDigitNumbers(text);
 }
