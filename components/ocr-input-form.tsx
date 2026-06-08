@@ -105,6 +105,7 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
   // Load snapshots on mount
   useEffect(() => {
     loadSnapshots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSnapshots = async () => {
@@ -147,7 +148,7 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
       } else if (data.error) {
         setMessage({ type: 'error', text: data.error });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to create snapshot' });
     }
   };

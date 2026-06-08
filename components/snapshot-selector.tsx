@@ -17,41 +17,11 @@ interface SnapshotSelectorProps {
 export function SnapshotSelector({ snapshots }: SnapshotSelectorProps) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string>(snapshots[0]?.id || "");
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [creating, setCreating] = useState(false);
 
   const handleChange = (snapshotId: string) => {
     setSelectedId(snapshotId);
     // Update URL or trigger data reload for the selected snapshot
-    // For now, we'll just use client-side state
     router.push(`/dashboard?snapshot=${snapshotId}`);
-  };
-
-  const handleCreate = async () => {
-    if (!newTitle.trim()) return;
-    
-    setCreating(true);
-    try {
-      const response = await fetch("/api/snapshots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle.trim() }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.snapshot) {
-        setNewTitle("");
-        setShowNewForm(false);
-        // Refresh the page to show new snapshot
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Failed to create snapshot:", error);
-    } finally {
-      setCreating(false);
-    }
   };
 
   return (
@@ -84,7 +54,7 @@ export function SnapshotSelector({ snapshots }: SnapshotSelectorProps) {
       <div className="flex items-end gap-2">
         <button
           type="button"
-          onClick={() => setShowNewForm(!showNewForm)}
+          onClick={() => router.refresh()}
           className="px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

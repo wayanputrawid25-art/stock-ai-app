@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No valid 4-digit numbers found" }, { status: 400 });
     }
 
-    const result = await prisma.result.createMany({
+    await prisma.result.createMany({
       data: numbers.map((resultNumber) => ({ 
         userId: user.id,
         snapshotId: snapshotId, 
