@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingState } from "@/components/LoadingState";
+import Tesseract from "tesseract.js";
 
 function Icon({ type, className = '' }: { type: 'upload' | 'check' | 'alert' | 'loader' | 'camera'; className?: string }) {
   const paths: Record<string, string> = {
@@ -34,15 +35,45 @@ interface OcrInputFormProps {
   buttonLabel: string;
 }
 
+// Function to clean OCR text - keep only numbers and spaces
+function cleanOCRText(text: string): string {
+  // Remove all characters except digits and newlines
+  return text.replace(/[^0-9\n]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Function to format OCR results into groups of 5 numbers per line
+function formatOCRResult(text: string): string {
+  const numbers = text.replace(/\D/g, '').trim();
+  if (numbers.length === 0) return '';
+  
+  // Group into sets of 4 digits with 5 numbers per line
+  const groups: string[] = [];
+  for (let i = 0; i < numbers.length; i += 4) {
+    const num = numbers.slice(i, i + 4);
+    if (num.length === 4) groups.push(num);
+  }
+  
+  // Format as 5 numbers per line
+  const lines: string[] = [];
+  for (let i = 0; i < groups.length; i += 5) {
+    const line = groups.slice(i, i + 5).join(' ');
+    if (line) lines.push(line);
+  }
+  
+  return lines.join('\n');
+}
+
 export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
   const [drawDate, setDrawDate] = useState("");
-  const [manualInput, setManualInput] = useState("");
+  const [ocrResult, setOcrResult] = useState("");
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState("");
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,33 +119,44 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
       return;
     }
 
-    if (!drawDate) {
-      setMessage({ type: 'error', text: 'Please select a draw date first' });
-      return;
-    }
-
     setScanning(true);
+    setScanStatus("Scanning OCR...");
     setMessage(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("drawDate", drawDate);
+      // Client-side OCR using Tesseract.js
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            setScanStatus(`Scanning OCR... ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      });
 
-      const response = await fetch("/api/ocr", { method: "POST", body: formData });
-      const json = await response.json();
+      // Get raw OCR text
+      const rawText = result.data.text;
+      
+      // Clean and format the text
+      const cleanedText = cleanOCRText(rawText);
+      const formattedResult = formatOCRResult(cleanedText);
 
-      if (!response.ok) throw new Error(json.error || "OCR failed");
-
-      const numbers = json.numbers || [];
-      if (numbers.length > 0) {
-        // Auto-fill the textarea with OCR results
-        setManualInput(numbers.join('\n'));
-        setMessage({ type: 'success', text: `Found ${numbers.length} numbers! Review and click Save.` });
+      if (!formattedResult) {
+        setScanStatus("OCR selesai - No valid numbers found");
+        setMessage({ type: 'error', text: 'No valid 4-digit numbers found in the image' });
       } else {
-        setMessage({ type: 'error', text: 'No 4-digit numbers found in the image' });
+        // Set result to textarea directly
+        setOcrResult(formattedResult);
+        
+        // Update textarea value directly
+        if (textareaRef.current) {
+          textareaRef.current.value = formattedResult;
+        }
+        
+        setScanStatus("OCR selesai");
+        setMessage({ type: 'success', text: 'OCR completed! Review the results below.' });
       }
     } catch (error) {
+      setScanStatus("OCR failed");
       setMessage({ type: 'error', text: error instanceof Error ? error.message : "OCR scan failed" });
     } finally {
       setScanning(false);
@@ -127,13 +169,17 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
       return;
     }
 
-    const numbers = manualInput
+    // Get values from textarea
+    const textAreaValue = textareaRef.current?.value || ocrResult;
+    
+    const numbers = textAreaValue
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length === 4 && /^\d{4}$/.test(line));
+      .flatMap(line => line.split(/\s+/))
+      .map(num => num.trim())
+      .filter(num => num.length === 4 && /^\d{4}$/.test(num));
 
     if (numbers.length === 0) {
-      setMessage({ type: 'error', text: 'Please enter valid 4-digit numbers (one per line)' });
+      setMessage({ type: 'error', text: 'Please enter valid 4-digit numbers' });
       return;
     }
 
@@ -153,9 +199,10 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
       }
 
       setMessage({ type: 'success', text: `Successfully saved ${numbers.length} numbers!` });
-      setManualInput("");
+      setOcrResult("");
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      if (textareaRef.current) textareaRef.current.value = '';
     } catch (error) {
       setMessage({ type: 'error', text: error instanceof Error ? error.message : "Save failed" });
     } finally {
@@ -163,9 +210,11 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
     }
   };
 
-  const validNumbersCount = manualInput
+  // Calculate valid numbers from OCR result
+  const validNumbersCount = ocrResult
     .split('\n')
-    .filter(line => line.trim().length === 4 && /^\d{4}$/.test(line.trim())).length;
+    .flatMap(line => line.split(/\s+/))
+    .filter(num => num.length === 4 && /^\d{4}$/.test(num.trim())).length;
 
   return (
     <div className="space-y-6">
@@ -182,28 +231,9 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
         />
       </div>
 
-      {/* Main Textarea */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label htmlFor="manualInput" className="text-sm font-medium text-gray-700">
-            4D Numbers (one per line)
-          </label>
-          {validNumbersCount > 0 && (
-            <span className="text-xs text-green-600 font-medium">{validNumbersCount} valid numbers</span>
-          )}
-        </div>
-        <Textarea
-          id="manualInput"
-          value={manualInput}
-          onChange={(e) => setManualInput(e.target.value)}
-          placeholder={"1234\n5678\n9012\n1111\n2222"}
-          rows={8}
-          className="font-mono"
-        />
-      </div>
-
-      {/* OCR Helper - Scan Image */}
+      {/* OCR Image Upload */}
       <div className="space-y-3">
+        <label className="text-sm font-medium text-gray-700">Upload Image for OCR</label>
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -232,9 +262,9 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-700">
-                {isDragging ? 'Drop image here' : 'Or scan image to auto-fill numbers'}
+                {isDragging ? 'Drop image here' : 'Click or drag image to select'}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Drag & drop or click to select image</p>
+              <p className="text-xs text-gray-500 mt-1">JPEG, PNG, WebP (Max 10MB)</p>
             </div>
           </div>
         </div>
@@ -247,7 +277,7 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
 
         <Button
           onClick={handleScan}
-          disabled={scanning || !drawDate || !preview}
+          disabled={scanning || !preview}
           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-blue-500/25 min-h-[48px]"
         >
           {scanning ? (
@@ -265,15 +295,38 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
 
         {scanning && (
           <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-4">
-            <LoadingState variant="dots" message="OCR is reading bold black digits..." />
+            <LoadingState variant="dots" message={scanStatus} />
           </div>
         )}
+      </div>
+
+      {/* OCR Result Textarea */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="ocrResult" className="text-sm font-medium text-gray-700">
+            OCR Result
+          </label>
+          {validNumbersCount > 0 && (
+            <span className="text-xs text-green-600 font-medium">{validNumbersCount} valid numbers</span>
+          )}
+        </div>
+        <Textarea
+          ref={textareaRef}
+          id="ocrResult"
+          value={ocrResult}
+          onChange={(e) => {
+            setOcrResult(e.target.value);
+          }}
+          placeholder={"OCR results will appear here automatically..."}
+          rows={6}
+          className="font-mono"
+        />
       </div>
 
       {/* Save Button */}
       <Button
         onClick={handleSave}
-        disabled={busy || !drawDate || !manualInput.trim()}
+        disabled={busy || !drawDate || !ocrResult.trim()}
         className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-green-500/25 min-h-[48px]"
       >
         {busy ? (
