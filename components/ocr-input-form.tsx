@@ -169,17 +169,27 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
       return;
     }
 
-    // Get values from textarea
-    const textAreaValue = textareaRef.current?.value || ocrResult;
+    // Get values from textarea (use state value, fallback to ref)
+    const textAreaValue = ocrResult || textareaRef.current?.value || "";
     
-    const numbers = textAreaValue
-      .split('\n')
-      .flatMap(line => line.split(/\s+/))
-      .map(num => num.trim())
-      .filter(num => num.length === 4 && /^\d{4}$/.test(num));
+    // Parse numbers from textarea - handle both formats (with/without spaces)
+    const numbers: string[] = [];
+    const lines = textAreaValue.split('\n');
+    
+    for (const line of lines) {
+      // Split by whitespace
+      const parts = line.split(/\s+/);
+      for (const part of parts) {
+        const trimmed = part.trim();
+        // Check if it's exactly 4 digits
+        if (/^\d{4}$/.test(trimmed)) {
+          numbers.push(trimmed);
+        }
+      }
+    }
 
     if (numbers.length === 0) {
-      setMessage({ type: 'error', text: 'Please enter valid 4-digit numbers' });
+      setMessage({ type: 'error', text: 'No valid 4-digit numbers found. Please enter numbers like: 1234 5678' });
       return;
     }
 
@@ -193,9 +203,10 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
         body: JSON.stringify({ drawDate, raw: numbers.join('\n') }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const json = await response.json();
-        throw new Error(json.error || "Failed to save results");
+        throw new Error(data.error || "Failed to save results");
       }
 
       setMessage({ type: 'success', text: `Successfully saved ${numbers.length} numbers!` });
@@ -211,10 +222,8 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
   };
 
   // Calculate valid numbers from OCR result
-  const validNumbersCount = ocrResult
-    .split('\n')
-    .flatMap(line => line.split(/\s+/))
-    .filter(num => num.length === 4 && /^\d{4}$/.test(num.trim())).length;
+  const numbers = ocrResult.split('\n').flatMap(line => line.split(/\s+/)).filter(num => /^\d{4}$/.test(num.trim()));
+  const validNumbersCount = numbers.length;
 
   return (
     <div className="space-y-6">
