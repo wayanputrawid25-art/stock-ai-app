@@ -1,19 +1,17 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingState } from "@/components/LoadingState";
 
-function Icon({ type, className = '' }: { type: 'upload' | 'check' | 'alert' | 'loader' | 'camera' | 'scan'; className?: string }) {
+function Icon({ type, className = '' }: { type: 'upload' | 'check' | 'alert' | 'loader' | 'camera'; className?: string }) {
   const paths: Record<string, string> = {
     upload: 'M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
     check: 'M9 12.75 11.25 15 15.75 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
     alert: 'M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
     camera: 'M15.75 10.5l4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z',
-    scan: 'M3 7V5a2 2 0 0 1 2-2h2m0 0V3m0 2a2 2 0 0 1 2-2h2m-2 0v2m0-2H9m2 2h2m-2 0v2m0-2v2m0 2v2m0 2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2m0 0h2m2 0v2m0-2a2 2 0 0 0-2-2H9m2 0v2m0-2v2m0 2a2 2 0 0 0 2-2V7m0 2a2 2 0 0 0-2 2v4m0 0h2m-2 0H9m2 0v2m0-2v2m0 2a2 2 0 0 0 2 2m-2-2v2m0-2v2m0 2a2 2 0 0 0-2 2m2-2v2m0-2v2m0 2a2 2 0 0 0 2 2m-2-2v2m0-2v2',
   };
 
   if (type === 'loader') {
@@ -37,9 +35,7 @@ interface OcrInputFormProps {
 }
 
 export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
-  const [mode, setMode] = useState<'ocr' | 'manual'>('ocr');
   const [drawDate, setDrawDate] = useState("");
-  const [ocrResults, setOcrResults] = useState<string[]>([]);
   const [manualInput, setManualInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -47,14 +43,6 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Sync OCR results to manual input when OCR completes
-  useEffect(() => {
-    if (ocrResults.length > 0) {
-      setManualInput(ocrResults.join('\n'));
-      setMode('manual');
-    }
-  }, [ocrResults]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,8 +108,9 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
 
       const numbers = json.numbers || [];
       if (numbers.length > 0) {
-        setOcrResults(numbers);
-        setMessage({ type: 'success', text: `Found ${numbers.length} numbers! Switch to Manual to review and save.` });
+        // Auto-fill the textarea with OCR results
+        setManualInput(numbers.join('\n'));
+        setMessage({ type: 'success', text: `Found ${numbers.length} numbers! Review and click Save.` });
       } else {
         setMessage({ type: 'error', text: 'No 4-digit numbers found in the image' });
       }
@@ -165,7 +154,6 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
 
       setMessage({ type: 'success', text: `Successfully saved ${numbers.length} numbers!` });
       setManualInput("");
-      setOcrResults([]);
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
@@ -175,40 +163,12 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
     }
   };
 
+  const validNumbersCount = manualInput
+    .split('\n')
+    .filter(line => line.trim().length === 4 && /^\d{4}$/.test(line.trim())).length;
+
   return (
     <div className="space-y-6">
-      {/* Mode Toggle */}
-      <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
-        <button
-          type="button"
-          onClick={() => setMode('ocr')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            mode === 'ocr' 
-              ? 'bg-white text-blue-600 shadow-sm' 
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <Icon type="camera" className="w-4 h-4" />
-            OCR Scan
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('manual')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            mode === 'manual' 
-              ? 'bg-white text-green-600 shadow-sm' 
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <Icon type="upload" className="w-4 h-4" />
-            Manual Input
-          </span>
-        </button>
-      </div>
-
       {/* Draw Date */}
       <div className="space-y-2">
         <label htmlFor="drawDate" className="text-sm font-medium text-gray-700">Draw Date</label>
@@ -222,117 +182,112 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
         />
       </div>
 
-      {/* OCR Mode */}
-      {mode === 'ocr' && (
-        <div className="space-y-4">
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`
-              relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer 
-              transition-all duration-300 ease-in-out
-              ${isDragging 
-                ? 'border-blue-500 bg-blue-50/50' 
-                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-              }
-              ${scanning ? 'opacity-50 cursor-not-allowed' : ''}
-            `}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="flex flex-col items-center gap-3">
-              <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${isDragging ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                <Icon type={isDragging ? 'camera' : 'upload'} className={`w-7 h-7 ${isDragging ? 'text-blue-600' : 'text-gray-400'}`} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">
-                  {isDragging ? 'Drop image here' : 'Drag & drop or click to select'}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">JPEG, PNG, or WebP (Max 10MB)</p>
-              </div>
-            </div>
-          </div>
-
-          {preview && (
-            <div className="relative rounded-xl overflow-hidden border border-gray-200">
-              <img src={preview} alt="Preview" className="w-full h-auto max-h-64 object-contain bg-gray-50" />
-            </div>
-          )}
-
-          <Button
-            onClick={handleScan}
-            disabled={scanning || !drawDate}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-blue-500/25 min-h-[48px]"
-          >
-            {scanning ? (
-              <>
-                <Icon type="loader" className="w-4 h-4 animate-spin mr-2" />
-                Scanning...
-              </>
-            ) : (
-              <>
-                <Icon type="scan" className="w-4 h-4 mr-2" />
-                Scan Image
-              </>
-            )}
-          </Button>
-
-          {scanning && (
-            <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-5 space-y-4">
-              <LoadingState variant="dots" message="OCR is reading bold black digits..." />
-            </div>
+      {/* Main Textarea */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="manualInput" className="text-sm font-medium text-gray-700">
+            4D Numbers (one per line)
+          </label>
+          {validNumbersCount > 0 && (
+            <span className="text-xs text-green-600 font-medium">{validNumbersCount} valid numbers</span>
           )}
         </div>
-      )}
+        <Textarea
+          id="manualInput"
+          value={manualInput}
+          onChange={(e) => setManualInput(e.target.value)}
+          placeholder={"1234\n5678\n9012\n1111\n2222"}
+          rows={8}
+          className="font-mono"
+        />
+      </div>
 
-      {/* Manual Input Mode */}
-      {mode === 'manual' && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="manualInput" className="text-sm font-medium text-gray-700">
-              4D Numbers (one per line)
-            </label>
-            <Textarea
-              id="manualInput"
-              value={manualInput}
-              onChange={(e) => setManualInput(e.target.value)}
-              placeholder={"1234\n5678\n9012\n1111\n2222"}
-              rows={8}
-              className="font-mono"
-            />
-            {manualInput && (
-              <p className="text-xs text-gray-500">
-                {manualInput.split('\n').filter(line => line.trim().length === 4 && /^\d{4}$/.test(line.trim())).length} valid numbers
+      {/* OCR Helper - Scan Image */}
+      <div className="space-y-3">
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`
+            border-2 border-dashed rounded-xl p-6 text-center cursor-pointer 
+            transition-all duration-300 ease-in-out
+            ${isDragging 
+              ? 'border-blue-500 bg-blue-50/50' 
+              : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+            }
+            ${scanning ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <div className="flex flex-col items-center gap-2">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDragging ? 'bg-blue-100' : 'bg-gray-100'}`}>
+              <Icon type={isDragging ? 'camera' : 'upload'} className={`w-6 h-6 ${isDragging ? 'text-blue-600' : 'text-gray-400'}`} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700">
+                {isDragging ? 'Drop image here' : 'Or scan image to auto-fill numbers'}
               </p>
-            )}
+              <p className="text-xs text-gray-500 mt-1">Drag & drop or click to select image</p>
+            </div>
           </div>
-
-          <Button
-            onClick={handleSave}
-            disabled={busy || !drawDate || !manualInput.trim()}
-            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-green-500/25 min-h-[48px]"
-          >
-            {busy ? (
-              <>
-                <Icon type="loader" className="w-4 h-4 animate-spin mr-2" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Icon type="check" className="w-4 h-4 mr-2" />
-                {buttonLabel}
-              </>
-            )}
-          </Button>
         </div>
-      )}
+
+        {preview && (
+          <div className="relative rounded-xl overflow-hidden border border-gray-200">
+            <img src={preview} alt="Preview" className="w-full h-auto max-h-48 object-contain bg-gray-50" />
+          </div>
+        )}
+
+        <Button
+          onClick={handleScan}
+          disabled={scanning || !drawDate || !preview}
+          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-blue-500/25 min-h-[48px]"
+        >
+          {scanning ? (
+            <>
+              <Icon type="loader" className="w-4 h-4 animate-spin mr-2" />
+              Scanning...
+            </>
+          ) : (
+            <>
+              <Icon type="camera" className="w-4 h-4 mr-2" />
+              Scan Image
+            </>
+          )}
+        </Button>
+
+        {scanning && (
+          <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-4">
+            <LoadingState variant="dots" message="OCR is reading bold black digits..." />
+          </div>
+        )}
+      </div>
+
+      {/* Save Button */}
+      <Button
+        onClick={handleSave}
+        disabled={busy || !drawDate || !manualInput.trim()}
+        className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-green-500/25 min-h-[48px]"
+      >
+        {busy ? (
+          <>
+            <Icon type="loader" className="w-4 h-4 animate-spin mr-2" />
+            Saving...
+          </>
+        ) : (
+          <>
+            <Icon type="check" className="w-4 h-4 mr-2" />
+            {buttonLabel}
+          </>
+        )}
+      </Button>
 
       {/* Message */}
       {message && (
