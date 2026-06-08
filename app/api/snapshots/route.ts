@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-// GET - List all snapshots for user
+// GET - List all snapshots for user with CORRECT counts
 export async function GET() {
   try {
     const user = await requireUser();
@@ -12,7 +12,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
-          select: { results: true, analyses: true }
+          select: { results: true }  // Same as dashboard - count only results
         }
       }
     });
@@ -41,8 +41,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (existing) {
+      // Return existing snapshot with count
+      const snapshotWithCount = await prisma.snapshot.findUnique({
+        where: { id: existing.id },
+        include: { _count: { select: { results: true } } }
+      });
       return NextResponse.json({ 
-        snapshot: existing, 
+        snapshot: snapshotWithCount, 
         message: "Snapshot already exists, using existing one" 
       });
     }
@@ -52,6 +57,9 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         title: title.trim(),
         color: color || "#3B82F6"
+      },
+      include: {
+        _count: { select: { results: true } }  // Include count like GET
       }
     });
 
