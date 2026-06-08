@@ -36,27 +36,63 @@ export function OcrUploader() {
   const [busy, setBusy] = useState(false);
   const [rawText, setRawText] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [drawDate, setDrawDate] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const upload = useCallback(async (formData: FormData) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedFile) {
+      setMessage("Please select an image file");
+      setMessageType('error');
+      return;
+    }
+    
+    if (!drawDate) {
+      setMessage("Please select a draw date");
+      setMessageType('error');
+      return;
+    }
+
     setBusy(true);
     setMessage("");
     setMessageType('');
     setNumbers([]);
     setRawText("");
+
     try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("drawDate", drawDate);
+
       const response = await fetch("/api/ocr", { method: "POST", body: formData });
       const json = await response.json();
+      
       if (!response.ok) throw new Error(json.error || "OCR failed");
-      setNumbers(json.numbers);
-      setRawText(json.text ?? "");
-      setMessage(`Extracted and saved ${json.numbers.length} valid 4-digit results`);
+      
+      setNumbers(json.numbers || []);
+      setRawText(json.text || "");
+      setMessage(`Extracted and saved ${json.numbers?.length || 0} valid 4-digit results`);
       setMessageType('success');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "OCR failed");
       setMessageType('error');
     } finally {
       setBusy(false);
+    }
+  }, [selectedFile, drawDate]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   }, []);
 
@@ -73,18 +109,32 @@ export function OcrUploader() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    // Trigger file input click if available
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   }, []);
 
   return (
-    <form action={upload} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-4">
         <div className="space-y-2">
           <label htmlFor="drawDate" className="text-sm font-medium text-gray-700">Draw Date</label>
-          <Input name="drawDate" id="drawDate" type="date" required className="w-full md:w-64" />
+          <input 
+            type="date" 
+            id="drawDate" 
+            name="drawDate"
+            value={drawDate}
+            onChange={(e) => setDrawDate(e.target.value)}
+            required 
+            className="flex h-10 w-full md:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          />
         </div>
         
         <div className="space-y-2">
@@ -111,6 +161,7 @@ export function OcrUploader() {
               accept="image/jpeg,image/jpg,image/png,image/webp"
               required
               disabled={busy}
+              onChange={handleFileSelect}
               className="hidden"
             />
             <div className="flex flex-col items-center gap-3">
@@ -127,6 +178,12 @@ export function OcrUploader() {
           </div>
         </div>
       </div>
+
+      {preview && (
+        <div className="relative rounded-xl overflow-hidden border border-gray-200">
+          <img src={preview} alt="Preview" className="w-full h-auto max-h-64 object-contain bg-gray-50" />
+        </div>
+      )}
 
       <Button type="submit" className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-blue-500/25 min-h-[48px]" disabled={busy}>
         {busy ? (
