@@ -9,12 +9,32 @@ import { analyzeResults } from "@/lib/analysis";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDictionary } from "@/lib/locale";
+import { SnapshotSelector } from "@/components/snapshot-selector";
 
 export default async function DashboardPage() {
   const user = await requireUser();
   const t = await getDictionary();
-  const results = await prisma.result.findMany({ where: { userId: user.id }, orderBy: { drawDate: "desc" }, select: { resultNumber: true, drawDate: true } });
-  const analysis = analyzeResults(results);
+  
+  // Get all snapshots for the user
+  const snapshots = await prisma.snapshot.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" }
+  });
+
+  // Get all results (for backward compatibility, we'll show aggregate if no snapshot selected)
+  const allResults = await prisma.result.findMany({
+    where: { userId: user.id },
+    orderBy: { drawDate: "desc" },
+    select: { resultNumber: true, drawDate: true, snapshotId: true }
+  });
+
+  // Get the first snapshot's results if available, otherwise show all
+  const defaultSnapshotId = snapshots[0]?.id;
+  const resultsToAnalyze = defaultSnapshotId 
+    ? allResults.filter(r => r.snapshotId === defaultSnapshotId)
+    : allResults;
+  
+  const analysis = analyzeResults(resultsToAnalyze);
 
   return (
     <div className="space-y-8">
@@ -25,11 +45,19 @@ export default async function DashboardPage() {
           <p className="text-sm text-muted-foreground mt-1">Track and analyze your 4D predictions</p>
         </div>
         <form action={runAnalysisAction}>
-          <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25 font-semibold">
+          <input type="hidden" name="snapshotId" value={defaultSnapshotId || ""} />
+          <Button type="submit" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25 font-semibold">
             {t.dashboard.saveSnapshot}
           </Button>
         </form>
       </div>
+
+      {/* Snapshot Selector */}
+      {snapshots.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+          <SnapshotSelector snapshots={snapshots} />
+        </div>
+      )}
 
       {/* Metrics Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

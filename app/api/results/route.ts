@@ -10,10 +10,23 @@ export async function POST(request: NextRequest) {
     const user = await requireUser();
     
     const body = await request.json();
-    const { drawDate, raw } = body;
+    const { snapshotId, drawDate, raw } = body;
+
+    if (!snapshotId) {
+      return NextResponse.json({ error: "Snapshot is required" }, { status: 400 });
+    }
 
     if (!drawDate || !raw) {
       return NextResponse.json({ error: "Draw date and results are required" }, { status: 400 });
+    }
+
+    // Verify snapshot belongs to user
+    const snapshot = await prisma.snapshot.findFirst({
+      where: { id: snapshotId, userId: user.id }
+    });
+
+    if (!snapshot) {
+      return NextResponse.json({ error: "Snapshot not found or access denied" }, { status: 404 });
     }
 
     const numbers = extractValid4D(raw);
@@ -23,7 +36,8 @@ export async function POST(request: NextRequest) {
 
     const result = await prisma.result.createMany({
       data: numbers.map((resultNumber) => ({ 
-        userId: user.id, 
+        userId: user.id,
+        snapshotId: snapshotId, 
         resultNumber, 
         drawDate: new Date(drawDate) 
       })),
@@ -33,14 +47,15 @@ export async function POST(request: NextRequest) {
     await prisma.activityLog.create({ 
       data: { 
         userId: user.id, 
-        action: `RESULT_INPUT:${numbers.length}` 
+        action: `RESULT_INPUT:${numbers.length}:${snapshot.title}` 
       } 
     });
 
     return NextResponse.json({ 
       success: true, 
       count: numbers.length,
-      message: `Saved ${numbers.length} numbers successfully` 
+      snapshot: snapshot.title,
+      message: `Saved ${numbers.length} numbers to "${snapshot.title}"` 
     });
   } catch (error) {
     console.error("Save results error:", error);

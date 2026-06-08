@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingState } from "@/components/LoadingState";
 import Tesseract from "tesseract.js";
 
-function Icon({ type, className = '' }: { type: 'upload' | 'check' | 'alert' | 'loader' | 'camera'; className?: string }) {
+function Icon({ type, className = '' }: { type: 'upload' | 'check' | 'alert' | 'loader' | 'camera' | 'plus' | 'chevron'; className?: string }) {
   const paths: Record<string, string> = {
     upload: 'M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
     check: 'M9 12.75 11.25 15 15.75 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
     alert: 'M12 8v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
     camera: 'M15.75 10.5l4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z',
+    plus: 'M12 4.5v15m7.5-7.5h-15',
+    chevron: 'M19.5 8.25l-7.5 7.5-7.5-7.5',
   };
 
   if (type === 'loader') {
@@ -31,14 +33,35 @@ function Icon({ type, className = '' }: { type: 'upload' | 'check' | 'alert' | '
   );
 }
 
+interface Snapshot {
+  id: string;
+  title: string;
+  color: string;
+  _count?: { results: number; analyses: number };
+}
+
 interface OcrInputFormProps {
   buttonLabel: string;
 }
 
-// Function to clean OCR text - keep only numbers and spaces
+// Improved OCR digit corrections
+const OCR_CORRECTIONS: Record<string, string> = {
+  'O': '0', 'o': '0',
+  'I': '1', 'l': '1', '|': '1',
+  'Z': '2', 'z': '2',
+  'S': '5', 's': '5',
+  'B': '8',
+};
+
+// Function to clean OCR text with digit correction
 function cleanOCRText(text: string): string {
-  // Remove all characters except digits and newlines
-  return text.replace(/[^0-9\n]/g, ' ').replace(/\s+/g, ' ').trim();
+  // First apply digit corrections
+  let corrected = text;
+  for (const [wrong, correct] of Object.entries(OCR_CORRECTIONS)) {
+    corrected = corrected.split(wrong).join(correct);
+  }
+  // Then remove all non-digit and non-newline characters
+  return corrected.replace(/[^0-9\n]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 // Function to format OCR results into groups of 5 numbers per line
@@ -64,6 +87,10 @@ function formatOCRResult(text: string): string {
 }
 
 export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
+  const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
+  const [newSnapshotTitle, setNewSnapshotTitle] = useState("");
+  const [showNewSnapshot, setShowNewSnapshot] = useState(false);
   const [drawDate, setDrawDate] = useState("");
   const [ocrResult, setOcrResult] = useState("");
   const [busy, setBusy] = useState(false);
@@ -74,6 +101,56 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load snapshots on mount
+  useEffect(() => {
+    loadSnapshots();
+  }, []);
+
+  const loadSnapshots = async () => {
+    try {
+      const response = await fetch("/api/snapshots");
+      const data = await response.json();
+      if (data.snapshots) {
+        setSnapshots(data.snapshots);
+        // Auto-select first snapshot if none selected
+        if (!selectedSnapshot && data.snapshots.length > 0) {
+          setSelectedSnapshot(data.snapshots[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load snapshots:", error);
+    }
+  };
+
+  const handleCreateSnapshot = async () => {
+    if (!newSnapshotTitle.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a snapshot title' });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/snapshots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newSnapshotTitle.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.snapshot) {
+        setSnapshots(prev => [data.snapshot, ...prev]);
+        setSelectedSnapshot(data.snapshot);
+        setNewSnapshotTitle("");
+        setShowNewSnapshot(false);
+        setMessage({ type: 'success', text: data.message || 'Snapshot created!' });
+      } else if (data.error) {
+        setMessage({ type: 'error', text: data.error });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to create snapshot' });
+    }
+  };
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -164,6 +241,11 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
   };
 
   const handleSave = async () => {
+    if (!selectedSnapshot) {
+      setMessage({ type: 'error', text: 'Please select a snapshot first' });
+      return;
+    }
+
     if (!drawDate) {
       setMessage({ type: 'error', text: 'Please select a draw date' });
       return;
@@ -200,7 +282,11 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
       const response = await fetch("/api/results", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drawDate, raw: numbers.join('\n') }),
+        body: JSON.stringify({ 
+          snapshotId: selectedSnapshot.id,
+          drawDate, 
+          raw: numbers.join('\n') 
+        }),
       });
 
       const data = await response.json();
@@ -209,7 +295,7 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
         throw new Error(data.error || "Failed to save results");
       }
 
-      setMessage({ type: 'success', text: `Successfully saved ${numbers.length} numbers!` });
+      setMessage({ type: 'success', text: `Successfully saved ${numbers.length} numbers to "${selectedSnapshot.title}"!` });
       setOcrResult("");
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -227,6 +313,66 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
 
   return (
     <div className="space-y-6">
+      {/* Snapshot Selector */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">Select Snapshot</label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <select
+              value={selectedSnapshot?.id || ""}
+              onChange={(e) => {
+                const snapshot = snapshots.find(s => s.id === e.target.value);
+                setSelectedSnapshot(snapshot || null);
+              }}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm appearance-none cursor-pointer hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+            >
+              <option value="">-- Select Snapshot --</option>
+              {snapshots.map((snapshot) => (
+                <option key={snapshot.id} value={snapshot.id}>
+                  {snapshot.title} ({snapshot._count?.results || 0} results)
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+              <Icon type="chevron" className="w-4 h-4 text-gray-400" />
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowNewSnapshot(!showNewSnapshot)}
+            className="px-3"
+          >
+            <Icon type="plus" className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* New Snapshot Input */}
+        {showNewSnapshot && (
+          <div className="flex gap-2 mt-2 p-3 bg-gray-50 rounded-lg border">
+            <Input
+              value={newSnapshotTitle}
+              onChange={(e) => setNewSnapshotTitle(e.target.value)}
+              placeholder="Enter snapshot title (e.g., GAGA, HK MALAM)"
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateSnapshot();
+              }}
+            />
+            <Button onClick={handleCreateSnapshot} size="sm">
+              Create
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => {
+              setShowNewSnapshot(false);
+              setNewSnapshotTitle("");
+            }}>
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* Draw Date */}
       <div className="space-y-2">
         <label htmlFor="drawDate" className="text-sm font-medium text-gray-700">Draw Date</label>
