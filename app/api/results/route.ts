@@ -12,8 +12,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { snapshotId, drawDate, raw } = body;
 
+    // snapshotId is REQUIRED - no fallback
     if (!snapshotId) {
-      return NextResponse.json({ error: "Snapshot is required" }, { status: 400 });
+      return NextResponse.json({ error: "Snapshot is required. Please select or create a snapshot first." }, { status: 400 });
     }
 
     if (!drawDate || !raw) {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!snapshot) {
-      return NextResponse.json({ error: "Snapshot not found or access denied" }, { status: 404 });
+      return NextResponse.json({ error: "Snapshot not found or access denied. Please select a valid snapshot." }, { status: 404 });
     }
 
     const numbers = extractValid4D(raw);
@@ -54,7 +55,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       count: numbers.length,
-      snapshot: snapshot.title,
+      snapshotId: snapshot.id,
+      snapshotTitle: snapshot.title,
       message: `Saved ${numbers.length} numbers to "${snapshot.title}"` 
     });
   } catch (error) {
