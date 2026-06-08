@@ -4,36 +4,32 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { analyzeResults } from "@/lib/analysis";
 import { prisma } from "@/lib/db";
-import { extractValid4D, resultInputSchema } from "@/lib/validation";
 
-export async function saveManualResultsAction(_: { message?: string } | undefined, formData: FormData) {
+export async function runAnalysisAction(formData: FormData) {
   const user = await requireUser();
-  const parsed = resultInputSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { message: "Paste valid data and select a draw date" };
-
-  const numbers = extractValid4D(parsed.data.raw);
-  if (!numbers.length) return { message: "No valid 4-digit results found" };
-
-  await prisma.result.createMany({
-    data: numbers.map((resultNumber) => ({ userId: user.id, resultNumber, drawDate: parsed.data.drawDate })),
-    skipDuplicates: true
-  });
-  await prisma.activityLog.create({ data: { userId: user.id, action: `RESULT_INPUT:${numbers.length}` } });
-  revalidatePath("/dashboard");
-  return { message: `Saved ${numbers.length} valid result values` };
-}
-
-export async function runAnalysisAction() {
-  const user = await requireUser();
+  const snapshotId = formData.get("snapshotId") as string | null;
+  
+  const whereClause = snapshotId 
+    ? { userId: user.id, snapshotId }
+    : { userId: user.id };
+  
   const results = await prisma.result.findMany({
-    where: { userId: user.id },
+    where: whereClause,
     orderBy: { drawDate: "desc" },
-    select: { resultNumber: true, drawDate: true }
+    select: { resultNumber: true, drawDate: true, snapshotId: true }
   });
+  
   const analysis = analyzeResults(results);
-  await prisma.analysisHistory.create({
-    data: { userId: user.id, analysisType: "FULL_ANALYSIS", resultJson: analysis }
-  });
+  
+  // If snapshot specified, save to that snapshot's analysis
+  const targetSnapshotId = snapshotId || results[0]?.snapshotId;
+  
+  if (targetSnapshotId) {
+    await prisma.analysisHistory.create({
+      data: { userId: user.id, snapshotId: targetSnapshotId, analysisType: "FULL_ANALYSIS", resultJson: analysis }
+    });
+  }
+  
   await prisma.activityLog.create({ data: { userId: user.id, action: "RUN_ANALYSIS" } });
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/history");
@@ -41,6 +37,11 @@ export async function runAnalysisAction() {
 
 export async function deleteAnalysisAction(formData: FormData) {
   const user = await requireUser();
-  await prisma.analysisHistory.deleteMany({ where: { id: String(formData.get("id")), userId: user.id } });
+  const id = String(formData.get("id"));
+  
+  await prisma.analysisHistory.deleteMany({ 
+    where: { id, userId: user.id } 
+  });
+  
   revalidatePath("/dashboard/history");
 }

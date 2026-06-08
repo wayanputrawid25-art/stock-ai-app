@@ -19,7 +19,21 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file");
+    const snapshotId = String(formData.get("snapshotId") || "");
     const drawDate = new Date(String(formData.get("drawDate") || new Date()));
+
+    if (!snapshotId) {
+      return NextResponse.json({ error: "Snapshot ID is required" }, { status: 400 });
+    }
+
+    // Verify snapshot belongs to user
+    const snapshot = await prisma.snapshot.findFirst({
+      where: { id: snapshotId, userId: user.id }
+    });
+
+    if (!snapshot) {
+      return NextResponse.json({ error: "Snapshot not found or access denied" }, { status: 404 });
+    }
 
     if (!(file instanceof File)) return NextResponse.json({ error: "No file provided" }, { status: 400 });
     if (!supported.has(file.type)) return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
@@ -54,18 +68,24 @@ export async function POST(request: NextRequest) {
     const numbers = extractValid4D(normalizedText);
     if (numbers.length > 0) {
       await prisma.result.createMany({
-        data: numbers.map((resultNumber) => ({ userId: user.id, resultNumber, drawDate })),
+        data: numbers.map((resultNumber) => ({ 
+          userId: user.id, 
+          snapshotId: snapshotId,
+          resultNumber, 
+          drawDate 
+        })),
         skipDuplicates: true
       });
     }
-    await prisma.activityLog.create({ data: { userId: user.id, action: `OCR_SCAN:${numbers.length}` } });
+    await prisma.activityLog.create({ data: { userId: user.id, action: `OCR_SCAN:${numbers.length}:${snapshot.title}` } });
 
     return NextResponse.json({ 
       numbers, 
       text: normalizedText, 
       rawText,
       confidence,
-      extracted: numbers.length
+      extracted: numbers.length,
+      snapshot: snapshot.title
     });
   } catch (error) {
     console.error("OCR error:", error);
