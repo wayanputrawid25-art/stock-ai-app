@@ -40,6 +40,7 @@ export function OcrUploader() {
   const [drawDate, setDrawDate] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const drawDateRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +51,8 @@ export function OcrUploader() {
       return;
     }
     
-    if (!drawDate) {
+    const dateValue = drawDateRef.current?.value || drawDate;
+    if (!dateValue) {
       setMessage("Please select a draw date");
       setMessageType('error');
       return;
@@ -65,7 +67,7 @@ export function OcrUploader() {
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      formData.append("drawDate", drawDate);
+      formData.append("drawDate", dateValue);
 
       const response = await fetch("/api/ocr", { method: "POST", body: formData });
       const json = await response.json();
@@ -126,14 +128,15 @@ export function OcrUploader() {
       <div className="grid gap-4">
         <div className="space-y-2">
           <label htmlFor="drawDate" className="text-sm font-medium text-gray-700">Draw Date</label>
-          <input 
+          <Input 
+            ref={drawDateRef}
             type="date" 
             id="drawDate" 
             name="drawDate"
             value={drawDate}
             onChange={(e) => setDrawDate(e.target.value)}
             required 
-            className="flex h-10 w-full md:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full md:w-64"
           />
         </div>
         
