@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface Snapshot {
   id: string;
@@ -13,22 +13,39 @@ interface Snapshot {
 interface SnapshotSelectorProps {
   snapshots: Snapshot[];
   activeSnapshotId: string | null;
+  onSnapshotChange?: (snapshotId: string) => void;
+  isLoading?: boolean;
 }
 
-export function SnapshotSelector({ snapshots, activeSnapshotId }: SnapshotSelectorProps) {
-  const router = useRouter();
-  const [selectedId, setSelectedId] = useState<string>(activeSnapshotId || "");
-  const [isLoading, setIsLoading] = useState(false);
+export function SnapshotSelector({ snapshots, activeSnapshotId, onSnapshotChange, isLoading = false }: SnapshotSelectorProps) {
+  const searchParams = useSearchParams();
+  
+  // Get snapshot from URL or prop
+  const urlSnapshotId = searchParams.get("snapshot");
+  const [selectedId, setSelectedId] = useState<string>(activeSnapshotId || urlSnapshotId || "");
+
+  // Update selected when prop changes
+  useEffect(() => {
+    const newId = activeSnapshotId || urlSnapshotId || "";
+    if (newId !== selectedId) {
+      setSelectedId(newId);
+    }
+  }, [activeSnapshotId, urlSnapshotId]);
 
   const handleChange = async (snapshotId: string) => {
-    setIsLoading(true);
     setSelectedId(snapshotId);
     
-    // Navigate to dashboard with selected snapshot
-    router.push(`/dashboard?snapshot=${snapshotId}`);
+    // Call the callback if provided
+    if (onSnapshotChange) {
+      onSnapshotChange(snapshotId);
+    }
     
-    // Reset loading after navigation
-    setTimeout(() => setIsLoading(false), 500);
+    // Navigate to dashboard with selected snapshot
+    const newUrl = snapshotId ? `/dashboard?snapshot=${snapshotId}` : "/dashboard";
+    window.history.pushState({}, "", newUrl);
+    
+    // Dispatch custom event for data refresh
+    window.dispatchEvent(new CustomEvent("snapshotChanged", { detail: { snapshotId } }));
   };
 
   // Get current snapshot info

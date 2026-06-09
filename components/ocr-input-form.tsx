@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -87,6 +88,10 @@ function formatOCRResult(text: string): string {
 }
 
 export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlSnapshotId = searchParams.get("snapshot");
+  
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [selectedSnapshot, setSelectedSnapshot] = useState<Snapshot | null>(null);
   const [newSnapshotTitle, setNewSnapshotTitle] = useState("");
@@ -102,11 +107,21 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load snapshots on mount
+  // Load snapshots on mount and sync with URL parameter
   useEffect(() => {
     loadSnapshots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync snapshot selection with URL parameter
+  useEffect(() => {
+    if (urlSnapshotId && snapshots.length > 0) {
+      const snapshotFromUrl = snapshots.find(s => s.id === urlSnapshotId);
+      if (snapshotFromUrl && snapshotFromUrl.id !== selectedSnapshot?.id) {
+        setSelectedSnapshot(snapshotFromUrl);
+      }
+    }
+  }, [urlSnapshotId, snapshots]);
 
   const loadSnapshots = async () => {
     try {
@@ -145,6 +160,9 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
         setNewSnapshotTitle("");
         setShowNewSnapshot(false);
         setMessage({ type: 'success', text: data.message || 'Snapshot created!' });
+        
+        // Update URL with new snapshot
+        router.push(`/dashboard/input?snapshot=${data.snapshot.id}`);
       } else if (data.error) {
         setMessage({ type: 'error', text: data.error });
       }
@@ -297,6 +315,15 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
       }
 
       setMessage({ type: 'success', text: `Successfully saved ${numbers.length} numbers to "${selectedSnapshot.title}"!` });
+      
+      // Dispatch event to refresh dashboard
+      window.dispatchEvent(new CustomEvent("dataSaved", { 
+        detail: { snapshotId: selectedSnapshot.id } 
+      }));
+      
+      // Reload snapshots to update counts
+      loadSnapshots();
+      
       setOcrResult("");
       setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -324,6 +351,10 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
               onChange={(e) => {
                 const snapshot = snapshots.find(s => s.id === e.target.value);
                 setSelectedSnapshot(snapshot || null);
+                // Update URL when snapshot changes
+                if (snapshot) {
+                  window.history.pushState({}, "", `/dashboard/input?snapshot=${snapshot.id}`);
+                }
               }}
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-white text-sm appearance-none cursor-pointer hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
             >

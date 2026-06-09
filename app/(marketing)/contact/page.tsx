@@ -5,7 +5,7 @@ import { getDictionary } from "@/lib/locale";
 
 export default async function ContactPage() {
   const t = await getDictionary();
-  const telegram = process.env.NEXT_PUBLIC_TELEGRAM_URL || "https://t.me/your_admin_username";
+  const telegram = process.env.NEXT_PUBLIC_TELEGRAM_URL || "https://t.me/putrawid";
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
       <Card>
