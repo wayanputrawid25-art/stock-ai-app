@@ -113,15 +113,21 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 // Digit Badge Component
-function DigitBadge({ digit, type }: { digit: number; type: "hot" | "cold" | "normal" }) {
+function DigitBadge({ digit, type, size = "default" }: { digit: number; type: "hot" | "cold" | "normal"; size?: "sm" | "default" | "lg" }) {
   const styles = {
     hot: "bg-gradient-to-br from-hot/20 to-hot-light text-hot border-hot/30",
     cold: "bg-gradient-to-br from-cold/20 to-cold-light text-cold border-cold/30",
     normal: "bg-slate-100 text-slate-700 border-slate-200",
   };
+  
+  const sizeClasses = {
+    sm: "w-8 h-8 rounded-lg text-sm",
+    default: "w-10 h-10 sm:w-12 sm:h-12 rounded-xl text-lg sm:text-xl",
+    lg: "w-12 h-12 rounded-xl text-xl sm:text-2xl",
+  };
 
   return (
-    <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl border-2 font-bold text-xl digit-display ${styles[type]}`}>
+    <span className={`inline-flex items-center justify-center border-2 font-bold digit-display ${sizeClasses[size]} ${styles[type]}`}>
       {digit}
     </span>
   );
@@ -140,33 +146,32 @@ function CandidateCard({ candidate, rank }: { candidate: Candidate; rank: number
   const isTop = rank <= 3;
 
   return (
-    <div className={`p-4 rounded-xl border transition-all duration-200 ${isTop ? 'bg-gradient-to-r from-primary/5 to-transparent border-primary/20' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isTop ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600'}`}>
+    <div className={`p-3 sm:p-4 rounded-xl border transition-all duration-200 ${isTop ? 'bg-gradient-to-r from-primary/5 to-transparent border-primary/20' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 ${isTop ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600'}`}>
             {rank}
           </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono font-bold text-2xl tracking-wider digit-display">{candidate.number}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="font-mono font-bold text-xl sm:text-2xl tracking-wider digit-display">{candidate.number}</span>
               <button
                 onClick={handleCopy}
-                className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex-shrink-0"
                 title="Copy number"
               >
                 <Icon name={copied ? "check" : "copy"} className="w-4 h-4 text-slate-500" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">{candidate.reason}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 truncate hidden sm:block">{candidate.reason}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-24 hidden sm:block">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div className="w-16 sm:w-24">
             <ScoreBar score={candidate.score} />
           </div>
           <div className="text-right">
-            <span className="text-lg font-bold text-primary">{candidate.score}</span>
-            <p className="text-xs text-muted-foreground">score</p>
+            <span className="text-base sm:text-lg font-bold text-primary">{candidate.score}</span>
           </div>
         </div>
       </div>
@@ -219,51 +224,51 @@ export function PredictionPanel({ analysis }: PredictionPanelProps) {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Summary Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card hover className="overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <Icon name="chart" className="w-6 h-6 text-primary" />
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-lg bg-primary/10 flex-shrink-0">
+                <Icon name="chart" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-primary" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Records</p>
-                <p className="text-2xl font-bold">{analysis.summary.totalRecords.toLocaleString()}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Records</p>
+                <p className="text-lg sm:text-xl md:text-2xl font-bold truncate">{analysis.summary.totalRecords.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card hover className="overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-secondary/10">
-                <svg className="w-6 h-6 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-lg bg-secondary/10 flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                   <line x1="16" y1="2" x2="16" y2="6" />
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Last Result</p>
-                <p className="text-2xl font-bold font-mono tracking-wider">{analysis.summary.lastResult || "-"}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Last</p>
+                <p className="text-base sm:text-lg md:text-2xl font-bold font-mono tracking-wider truncate">{analysis.summary.lastResult || "-"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card hover className="overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-hot/10">
-                <Icon name="fire" className="w-6 h-6 text-hot" />
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-lg bg-hot/10 flex-shrink-0">
+                <Icon name="fire" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-hot" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Hot Digits</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Hot</p>
                 <div className="flex gap-1 mt-1">
                   {analysis.hotDigits.slice(0, 4).map((d) => (
-                    <span key={d} className="w-7 h-7 rounded-lg bg-hot/20 text-hot text-sm font-bold flex items-center justify-center">{d}</span>
+                    <span key={d} className="w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-hot/20 text-hot text-xs sm:text-sm font-bold flex items-center justify-center">{d}</span>
                   ))}
                 </div>
               </div>
@@ -271,16 +276,16 @@ export function PredictionPanel({ analysis }: PredictionPanelProps) {
           </CardContent>
         </Card>
         <Card hover className="overflow-hidden">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-cold/10">
-                <Icon name="snow" className="w-6 h-6 text-cold" />
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 rounded-lg bg-cold/10 flex-shrink-0">
+                <Icon name="snow" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-cold" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Cold Digits</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Cold</p>
                 <div className="flex gap-1 mt-1">
                   {analysis.coldDigits.slice(0, 4).map((d) => (
-                    <span key={d} className="w-7 h-7 rounded-lg bg-cold/20 text-cold text-sm font-bold flex items-center justify-center">{d}</span>
+                    <span key={d} className="w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-cold/20 text-cold text-xs sm:text-sm font-bold flex items-center justify-center">{d}</span>
                   ))}
                 </div>
               </div>
@@ -290,7 +295,7 @@ export function PredictionPanel({ analysis }: PredictionPanelProps) {
       </div>
 
       {/* Hot & Cold Digits Section */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-hot/10 to-transparent border-b">
             <div className="flex items-center justify-between">
