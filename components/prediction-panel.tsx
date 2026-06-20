@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, Td, Th, Tr } from "@/components/ui/table";
 
 // Types
 interface DigitFrequency {
@@ -20,21 +19,11 @@ interface AnalysisSummary {
   dateRange: string;
 }
 
-interface PositionPrediction {
-  position: string;
-  topDigits: Array<{ digit: number; score: number; confidence: number }>;
-}
-
 interface Candidate {
   number: string;
   score: number;
   confidence: number;
   reason: string;
-}
-
-interface PatternAnalysis {
-  oddEvenRatio: { odd: number; even: number; oddPercent: number };
-  bigSmallRatio: { big: number; small: number; bigPercent: number };
 }
 
 interface HistoricalAnalysisResult {
@@ -48,7 +37,6 @@ interface HistoricalAnalysisResult {
     KEPALA: { hotDigits: number[]; coldDigits: number[] };
     EKOR: { hotDigits: number[]; coldDigits: number[] };
   };
-  patternAnalysis: PatternAnalysis;
   predictions: {
     "2d": Candidate[];
     "3d": Candidate[];
@@ -57,45 +45,67 @@ interface HistoricalAnalysisResult {
   json: {
     hot_digit: number[];
     cold_digit: number[];
-    position_analysis: {
-      AS: number[];
-      KOP: number[];
-      KEPALA: number[];
-      EKOR: number[];
-    };
+    position_analysis: Record<string, number[]>;
     prediction_2d: Array<{ number: string; score: number }>;
     prediction_3d: Array<{ number: string; score: number }>;
     prediction_4d: Array<{ number: string; score: number }>;
   };
 }
 
-// Icon Component
-function Icon({ type, className = "" }: { type: "fire" | "snow" | "copy" | "check" | "download" | "chart"; className?: string }) {
-  const paths: Record<string, string> = {
-    fire: "M12.452 4.353c.845.642 1.335 1.591 1.336 2.647a3.5 3.5 0 0 1-3.5 3.5c-1.354 0-2.694-.77-3.323-1.95L4.586 7.8a4.5 4.5 0 0 1 1.997-1.124L9 5.1l2.452 1.577ZM8.5 12a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z",
-    snow: "M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07",
-    copy: "M8 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M16 4h2a2 2 0 0 1 2 2v2M8 4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2M8 4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2H8Z",
-    check: "M9 12.75 11.25 15 15.75 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
-    download: "M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4-4 4m0 0-4-4m4 4V4",
-    chart: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
+// Icon components
+function Icon({ name, className = "" }: { name: string; className?: string }) {
+  const icons: Record<string, ReactNode> = {
+    fire: (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12.452 4.353c.845.642 1.335 1.591 1.336 2.647a3.5 3.5 0 0 1-3.5 3.5c-1.354 0-2.694-.77-3.323-1.95L4.586 7.8a4.5 4.5 0 0 1 1.997-1.124L9 5.1l2.452 1.577Z" />
+      </svg>
+    ),
+    snow: (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07" />
+      </svg>
+    ),
+    copy: (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      </svg>
+    ),
+    check: (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    ),
+    download: (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+    ),
+    chart: (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+      </svg>
+    ),
   };
-
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d={paths[type] || paths.chart} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return icons[name] || icons.chart;
 }
 
 // Score Bar Component
 function ScoreBar({ score }: { score: number }) {
   const percentage = Math.min(100, score);
-  const color = score >= 80 ? "bg-green-500" : score >= 60 ? "bg-blue-500" : "bg-gray-400";
+  const getColor = (s: number) => {
+    if (s >= 85) return "from-emerald-500 to-green-400";
+    if (s >= 70) return "from-primary to-primary-light";
+    if (s >= 50) return "from-amber-500 to-yellow-400";
+    return "from-slate-400 to-slate-300";
+  };
   
   return (
-    <div className="w-full bg-gray-200 rounded-full h-2">
+    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
       <div
-        className={`h-2 rounded-full transition-all ${color}`}
+        className={`h-full rounded-full bg-gradient-to-r transition-all duration-500 ${getColor(score)}`}
         style={{ width: `${percentage}%` }}
       />
     </div>
@@ -104,21 +114,21 @@ function ScoreBar({ score }: { score: number }) {
 
 // Digit Badge Component
 function DigitBadge({ digit, type }: { digit: number; type: "hot" | "cold" | "normal" }) {
-  const colors = {
-    hot: "bg-orange-100 text-orange-800 border-orange-300",
-    cold: "bg-cyan-100 text-cyan-800 border-cyan-300",
-    normal: "bg-gray-100 text-gray-800 border-gray-300",
+  const styles = {
+    hot: "bg-gradient-to-br from-hot/20 to-hot-light text-hot border-hot/30",
+    cold: "bg-gradient-to-br from-cold/20 to-cold-light text-cold border-cold/30",
+    normal: "bg-slate-100 text-slate-700 border-slate-200",
   };
 
   return (
-    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border font-bold ${colors[type]}`}>
+    <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl border-2 font-bold text-xl digit-display ${styles[type]}`}>
       {digit}
     </span>
   );
 }
 
-// Candidate Row Component
-function CandidateRow({ candidate, rank }: { candidate: Candidate; rank: number }) {
+// Candidate Card Component
+function CandidateCard({ candidate, rank }: { candidate: Candidate; rank: number }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -127,40 +137,49 @@ function CandidateRow({ candidate, rank }: { candidate: Candidate; rank: number 
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const isTop = rank <= 3;
+
   return (
-    <Tr className={rank % 2 === 0 ? "bg-gray-50/50" : ""}>
-      <Td className="text-center font-bold text-lg">{rank}</Td>
-      <Td className="text-center">
-        <div className="flex items-center justify-center gap-2">
-          <span className="font-mono font-bold text-lg tracking-wider">{candidate.number}</span>
-          <button
-            onClick={handleCopy}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            title="Copy number"
-          >
-            <Icon type={copied ? "check" : "copy"} className="w-4 h-4 text-gray-500" />
-          </button>
+    <div className={`p-4 rounded-xl border transition-all duration-200 ${isTop ? 'bg-gradient-to-r from-primary/5 to-transparent border-primary/20' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isTop ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600'}`}>
+            {rank}
+          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-bold text-2xl tracking-wider digit-display">{candidate.number}</span>
+              <button
+                onClick={handleCopy}
+                className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                title="Copy number"
+              >
+                <Icon name={copied ? "check" : "copy"} className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{candidate.reason}</p>
+          </div>
         </div>
-      </Td>
-      <Td className="text-center">
-        <div className="flex items-center justify-center gap-2">
-          <ScoreBar score={candidate.score} />
-          <span className="text-sm font-medium w-12 text-right">{candidate.score}</span>
+        <div className="flex items-center gap-3">
+          <div className="w-24 hidden sm:block">
+            <ScoreBar score={candidate.score} />
+          </div>
+          <div className="text-right">
+            <span className="text-lg font-bold text-primary">{candidate.score}</span>
+            <p className="text-xs text-muted-foreground">score</p>
+          </div>
         </div>
-      </Td>
-      <Td className="text-center text-sm text-gray-600 hidden md:table-cell">{candidate.reason}</Td>
-    </Tr>
+      </div>
+    </div>
   );
 }
 
 // Main Prediction Panel Component
 interface PredictionPanelProps {
   analysis: HistoricalAnalysisResult | null;
-  loading?: boolean;
-  onRefresh?: () => void;
 }
 
-export function PredictionPanel({ analysis, loading, onRefresh }: PredictionPanelProps) {
+export function PredictionPanel({ analysis }: PredictionPanelProps) {
   const [showJson, setShowJson] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
 
@@ -188,14 +207,11 @@ export function PredictionPanel({ analysis, loading, onRefresh }: PredictionPane
 
   if (!analysis) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Icon type="chart" className="w-5 h-5" />
-            Predictions & Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-12 text-center">
+      <Card className="overflow-hidden">
+        <CardContent className="py-16 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
+            <Icon name="chart" className="w-8 h-8 text-slate-400" />
+          </div>
           <p className="text-muted-foreground">Analyze historical data to generate predictions</p>
         </CardContent>
       </Card>
@@ -203,236 +219,235 @@ export function PredictionPanel({ analysis, loading, onRefresh }: PredictionPane
   }
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
+    <div className="space-y-8 animate-fade-in">
+      {/* Summary Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total Records</p>
-            <p className="text-2xl font-bold">{analysis.summary.totalRecords}</p>
+        <Card hover className="overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-primary/10">
+                <Icon name="chart" className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Records</p>
+                <p className="text-2xl font-bold">{analysis.summary.totalRecords.toLocaleString()}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Last Result</p>
-            <p className="text-2xl font-bold font-mono">{analysis.summary.lastResult || "-"}</p>
+        <Card hover className="overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-secondary/10">
+                <svg className="w-6 h-6 text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Last Result</p>
+                <p className="text-2xl font-bold font-mono tracking-wider">{analysis.summary.lastResult || "-"}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Date Range</p>
-            <p className="text-sm font-medium truncate">{analysis.summary.dateRange}</p>
+        <Card hover className="overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-hot/10">
+                <Icon name="fire" className="w-6 h-6 text-hot" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Hot Digits</p>
+                <div className="flex gap-1 mt-1">
+                  {analysis.hotDigits.slice(0, 4).map((d) => (
+                    <span key={d} className="w-7 h-7 rounded-lg bg-hot/20 text-hot text-sm font-bold flex items-center justify-center">{d}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Last Updated</p>
-            <p className="text-sm font-medium">
-              {analysis.summary.lastDate
-                ? new Date(analysis.summary.lastDate).toLocaleDateString()
-                : "-"}
-            </p>
+        <Card hover className="overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-cold/10">
+                <Icon name="snow" className="w-6 h-6 text-cold" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Cold Digits</p>
+                <div className="flex gap-1 mt-1">
+                  {analysis.coldDigits.slice(0, 4).map((d) => (
+                    <span key={d} className="w-7 h-7 rounded-lg bg-cold/20 text-cold text-sm font-bold flex items-center justify-center">{d}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Hot & Cold Digits */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="shadow-sm">
-          <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100 border-b">
+      {/* Hot & Cold Digits Section */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-hot/10 to-transparent border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-orange-700">
-                <Icon type="fire" className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-hot">
+                <Icon name="fire" className="w-5 h-5" />
                 Hot Digits
               </CardTitle>
-              <Badge variant="secondary">{analysis.hotDigits.length} digits</Badge>
+              <Badge variant="hot" size="md">Top 4</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-2">
+          <CardContent className="p-6">
+            <div className="flex flex-wrap gap-3 justify-center">
               {analysis.hotDigits.map((digit) => (
                 <DigitBadge key={`hot-${digit}`} digit={digit} type="hot" />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Most frequently appearing digits in recent draws
+            <p className="text-sm text-muted-foreground text-center mt-4">
+              Most frequently appearing digits
             </p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
-          <CardHeader className="bg-gradient-to-r from-cyan-50 to-cyan-100 border-b">
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-cold/10 to-transparent border-b">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-cyan-700">
-                <Icon type="snow" className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-cold">
+                <Icon name="snow" className="w-5 h-5" />
                 Cold Digits
               </CardTitle>
-              <Badge variant="secondary">{analysis.coldDigits.length} digits</Badge>
+              <Badge variant="cold" size="md">Top 4</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-2">
+          <CardContent className="p-6">
+            <div className="flex flex-wrap gap-3 justify-center">
               {analysis.coldDigits.map((digit) => (
                 <DigitBadge key={`cold-${digit}`} digit={digit} type="cold" />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              Digits that appear less frequently - may be &quot;due&quot; to appear
+            <p className="text-sm text-muted-foreground text-center mt-4">
+              May be &quot;due&quot; to appear
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Position Analysis */}
-      <Card className="shadow-sm">
-        <CardHeader>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-transparent border-b">
           <CardTitle>Position Analysis</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {(["AS", "KOP", "KEPALA", "EKOR"] as const).map((position) => (
-              <div key={position} className="p-3 rounded-lg bg-gray-50 border">
-                <p className="font-semibold mb-2">{position}</p>
-                <div className="flex flex-wrap gap-1">
-                  {analysis.positionAnalysis[position].hotDigits.map((digit) => (
-                    <DigitBadge key={`${position}-hot-${digit}`} digit={digit} type="hot" />
-                  ))}
+            {(["AS", "KOP", "KEPALA", "EKOR"] as const).map((position, idx) => {
+              const colors = ["text-primary", "text-secondary", "text-success", "text-info"];
+              return (
+                <div key={position} className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${idx === 0 ? 'from-primary to-primary-light' : idx === 1 ? 'from-secondary to-secondary-light' : idx === 2 ? 'from-success to-emerald-400' : 'from-info to-cyan-400'} text-white flex items-center justify-center font-bold text-sm`}>
+                      {position.charAt(0)}
+                    </span>
+                    <span className="font-semibold">{position}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.positionAnalysis[position].hotDigits.map((digit) => (
+                      <DigitBadge key={`${position}-hot-${digit}`} digit={digit} type="hot" />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
       {/* 2D Candidates */}
-      <Card className="shadow-sm">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 border-b">
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-purple-50/50 to-transparent border-b">
           <div className="flex items-center justify-between">
-            <CardTitle>2D Candidates (2-digit)</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">2D</span>
+              2-Digit Candidates
+            </CardTitle>
             <Badge variant="secondary">Top 10</Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <thead className="bg-gray-50/50">
-              <Tr>
-                <Th className="text-center">#</Th>
-                <Th className="text-center">Number</Th>
-                <Th className="text-center w-1/3">Score</Th>
-                <Th className="text-center hidden md:table-cell">Reason</Th>
-              </Tr>
-            </thead>
-            <tbody>
-              {analysis.predictions["2d"].slice(0, 10).map((candidate, idx) => (
-                <CandidateRow key={`2d-${idx}`} candidate={candidate} rank={idx + 1} />
-              ))}
-            </tbody>
-          </Table>
+        <CardContent className="p-4 space-y-2">
+          {analysis.predictions["2d"].slice(0, 10).map((candidate, idx) => (
+            <CandidateCard key={`2d-${idx}`} candidate={candidate} rank={idx + 1} />
+          ))}
         </CardContent>
       </Card>
 
       {/* 3D Candidates */}
-      <Card className="shadow-sm">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-50/50 to-transparent border-b">
           <div className="flex items-center justify-between">
-            <CardTitle>3D Candidates (3-digit)</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">3D</span>
+              3-Digit Candidates
+            </CardTitle>
             <Badge variant="secondary">Top 10</Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <thead className="bg-gray-50/50">
-              <Tr>
-                <Th className="text-center">#</Th>
-                <Th className="text-center">Number</Th>
-                <Th className="text-center w-1/3">Score</Th>
-                <Th className="text-center hidden md:table-cell">Reason</Th>
-              </Tr>
-            </thead>
-            <tbody>
-              {analysis.predictions["3d"].slice(0, 10).map((candidate, idx) => (
-                <CandidateRow key={`3d-${idx}`} candidate={candidate} rank={idx + 1} />
-              ))}
-            </tbody>
-          </Table>
+        <CardContent className="p-4 space-y-2">
+          {analysis.predictions["3d"].slice(0, 10).map((candidate, idx) => (
+            <CandidateCard key={`3d-${idx}`} candidate={candidate} rank={idx + 1} />
+          ))}
         </CardContent>
       </Card>
 
       {/* 4D Candidates */}
-      <Card className="shadow-sm">
-        <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 border-b">
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-green-50/50 to-transparent border-b">
           <div className="flex items-center justify-between">
-            <CardTitle>4D Candidates (4-digit)</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-green-100 text-green-700 flex items-center justify-center font-bold">4D</span>
+              4-Digit Candidates
+            </CardTitle>
             <Badge variant="secondary">Top 20</Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <thead className="bg-gray-50/50">
-              <Tr>
-                <Th className="text-center">#</Th>
-                <Th className="text-center">Number</Th>
-                <Th className="text-center w-1/3">Score</Th>
-                <Th className="text-center hidden md:table-cell">Reason</Th>
-              </Tr>
-            </thead>
-            <tbody>
-              {analysis.predictions["4d"].slice(0, 20).map((candidate, idx) => (
-                <CandidateRow key={`4d-${idx}`} candidate={candidate} rank={idx + 1} />
-              ))}
-            </tbody>
-          </Table>
+        <CardContent className="p-4 space-y-2">
+          {analysis.predictions["4d"].slice(0, 20).map((candidate, idx) => (
+            <CandidateCard key={`4d-${idx}`} candidate={candidate} rank={idx + 1} />
+          ))}
         </CardContent>
       </Card>
 
-      {/* Pattern Analysis */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Pattern Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="p-4 rounded-lg bg-gray-50">
-              <p className="text-sm text-muted-foreground mb-1">Odd/Even Ratio</p>
-              <p className="text-lg font-bold">
-                {analysis.patternAnalysis.oddEvenRatio.oddPercent.toFixed(1)}% Odd /{" "}
-                {(100 - analysis.patternAnalysis.oddEvenRatio.oddPercent).toFixed(1)}% Even
-              </p>
-            </div>
-            <div className="p-4 rounded-lg bg-gray-50">
-              <p className="text-sm text-muted-foreground mb-1">Big/Small Ratio</p>
-              <p className="text-lg font-bold">
-                {analysis.patternAnalysis.bigSmallRatio.bigPercent.toFixed(1)}% Big (5-9) /{" "}
-                {(100 - analysis.patternAnalysis.bigSmallRatio.bigPercent).toFixed(1)}% Small (0-4)
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* JSON Output Section */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>JSON Output</CardTitle>
+      {/* JSON Output */}
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-transparent border-b">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              JSON Output
+            </CardTitle>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleCopyJson}>
-                <Icon type={jsonCopied ? "check" : "copy"} className="w-4 h-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={handleCopyJson} className="gap-2">
+                <Icon name={jsonCopied ? "check" : "copy"} className="w-4 h-4" />
                 {jsonCopied ? "Copied!" : "Copy"}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDownloadJson}>
-                <Icon type="download" className="w-4 h-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={handleDownloadJson} className="gap-2">
+                <Icon name="download" className="w-4 h-4" />
                 Download
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowJson(!showJson)}>
-                {showJson ? "Hide" : "Show"} JSON
+                {showJson ? "Hide" : "Show"}
               </Button>
             </div>
           </div>
         </CardHeader>
         {showJson && (
-          <CardContent>
-            <pre className="p-4 rounded-lg bg-gray-900 text-green-400 font-mono text-xs overflow-x-auto max-h-96 overflow-y-auto">
+          <CardContent className="p-0">
+            <pre className="p-4 rounded-b-xl bg-slate-900 text-green-400 font-mono text-xs overflow-x-auto max-h-96 overflow-y-auto">
               {JSON.stringify(analysis.json, null, 2)}
             </pre>
           </CardContent>
@@ -440,13 +455,18 @@ export function PredictionPanel({ analysis, loading, onRefresh }: PredictionPane
       </Card>
 
       {/* Disclaimer */}
-      <Card className="shadow-sm border-amber-200 bg-amber-50">
+      <Card className="overflow-hidden border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50">
         <CardContent className="p-4">
-          <p className="text-sm text-amber-800">
-            <strong>Disclaimer:</strong> This analysis is based on historical data patterns and
-            statistical probability. It does not guarantee future results. Please gamble
-            responsibly and within your means.
-          </p>
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p className="text-sm text-amber-800">
+              <strong>Disclaimer:</strong> This analysis is based on historical data patterns and statistical probability. It does not guarantee future results. Please gamble responsibly.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
