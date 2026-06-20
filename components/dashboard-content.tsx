@@ -32,13 +32,19 @@ interface Analysis {
   prediction: Record<string, Array<{ digit: number; score: number; confidence: number }>>;
 }
 
-function AnimatedDigit({ value, delay = 0 }: { value: number | null; delay?: number }) {
+function AnimatedDigit({ value, delay = 0, size = "default" }: { value: number | null; delay?: number; size?: "sm" | "default" | "lg" }) {
+  const sizeClasses = {
+    sm: "w-10 h-10",
+    default: "w-12 h-12 sm:w-14 sm:h-14",
+    lg: "w-14 h-14 sm:w-16 sm:h-16",
+  };
+  
   return (
     <div 
-      className="relative w-14 h-14 flex items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 shadow-inner"
+      className={`relative ${sizeClasses[size]} flex items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 shadow-inner`}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <span className="text-2xl font-bold text-slate-700 digit-display">
+      <span className={`font-bold text-slate-700 digit-display ${size === "sm" ? "text-lg" : size === "lg" ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"}`}>
         {value !== null ? value : "-"}
       </span>
     </div>
@@ -62,18 +68,18 @@ function StatCard({ label, value, subtext, icon, color = "primary" }: {
   
   return (
     <Card hover className="relative overflow-hidden">
-      <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colorMap[color]} opacity-10 rounded-bl-full`} />
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className="text-3xl font-bold mt-1 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+      <div className={`absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br ${colorMap[color]} opacity-10 rounded-bl-full`} />
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{label}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent truncate">
               {value}
             </p>
-            {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
+            {subtext && <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 hidden sm:block">{subtext}</p>}
           </div>
-          <div className={`p-3 rounded-xl bg-gradient-to-br ${colorMap[color]} text-white shadow-lg`}>
-            {icon}
+          <div className={`p-2 sm:p-3 rounded-xl bg-gradient-to-br ${colorMap[color]} text-white shadow-lg flex-shrink-0`}>
+            <div className="w-5 h-5 sm:w-6 sm:h-6">{icon}</div>
           </div>
         </div>
       </CardContent>
@@ -211,23 +217,23 @@ export function DashboardContent({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8 animate-fade-in">
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
             <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">
               {labels.title}
             </span>
           </h1>
-          <p className="text-muted-foreground mt-2">Analisis dan prediksi 4D dengan data historis</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">Analisis & prediksi 4D</p>
         </div>
         
         {selectedSnapshot && (
-          <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border shadow-sm">
-            <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: selectedSnapshot.color }} />
-            <span className="font-medium">{selectedSnapshot.title}</span>
-            <Badge variant="secondary">{selectedSnapshot._count?.results || 0} data</Badge>
+          <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-white border shadow-sm">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-pulse" style={{ backgroundColor: selectedSnapshot.color }} />
+            <span className="text-xs sm:text-sm font-medium truncate max-w-[100px] sm:max-w-none">{selectedSnapshot.title}</span>
+            <Badge variant="secondary" size="sm">{selectedSnapshot._count?.results || 0}</Badge>
           </div>
         )}
       </div>
@@ -235,35 +241,30 @@ export function DashboardContent({
       {/* Snapshot Selector */}
       {snapshots.length > 0 && (
         <Card className={`overflow-hidden transition-opacity duration-300 ${isSnapshotChanging ? 'opacity-50' : 'opacity-100'}`}>
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="flex-1 w-full">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                  Pilih Snapshot
-                </label>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col gap-3">
+              <div className="w-full">
                 <select
                   value={activeSnapshotId || ""}
                   onChange={(e) => handleSnapshotChange(e.target.value)}
-                  className="w-full h-11 rounded-lg border-2 border-input bg-white px-4 text-sm outline-none transition-all focus:border-primary"
+                  className="w-full h-12 sm:h-11 rounded-lg border-2 border-input bg-white px-3 sm:px-4 text-sm outline-none transition-all focus:border-primary"
                 >
                   <option value="">-- Pilih Snapshot --</option>
                   {snapshots.map((snapshot) => (
                     <option key={snapshot.id} value={snapshot.id}>
-                      {snapshot.title} ({snapshot._count?.results || 0} results)
+                      {snapshot.title} ({snapshot._count?.results || 0})
                     </option>
                   ))}
                 </select>
               </div>
-              <div className="flex gap-2">
-                <Button asChild size="sm" className="gap-2">
-                  <Link href="/dashboard/input">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    {labels.inputData}
-                  </Link>
-                </Button>
-              </div>
+              <Button asChild size="sm" className="w-full gap-2 sm:w-auto sm:px-4">
+                <Link href="/dashboard/input">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Input Data
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -353,29 +354,29 @@ export function DashboardContent({
 
       {/* TOP-LOW Position Cards */}
       {hasData && !isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {(["AS", "KOP", "KEPALA", "EKOR"] as const).map((position, idx) => {
             const { top, low } = getTopLowData(position);
             const positionColors = ["from-primary/20 to-primary/5", "from-secondary/20 to-secondary/5", "from-success/20 to-success/5", "from-info/20 to-info/5"];
             
             return (
               <Card key={position} className={`overflow-hidden bg-gradient-to-br ${positionColors[idx]}`}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-slate-700">{position}</h3>
+                <CardContent className="p-3 sm:p-4 md:p-6">
+                  <div className="flex items-center justify-between mb-2 sm:mb-4">
+                    <h3 className="font-semibold text-slate-700 text-sm sm:text-base">{position}</h3>
                     <Badge variant={idx === 0 ? "default" : "secondary"} size="sm">
-                      Position {idx + 1}
+                      {idx + 1}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-center gap-4">
+                  <div className="flex items-center justify-center gap-2 sm:gap-4">
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-1">TOP</p>
-                      <AnimatedDigit value={top} delay={idx * 100} />
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">TOP</p>
+                      <AnimatedDigit value={top} delay={idx * 100} size="sm" />
                     </div>
-                    <div className="text-2xl font-bold text-slate-300">/</div>
+                    <div className="text-lg sm:text-2xl font-bold text-slate-300">/</div>
                     <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-1">LOW</p>
-                      <AnimatedDigit value={low} delay={idx * 100 + 50} />
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">LOW</p>
+                      <AnimatedDigit value={low} delay={idx * 100 + 50} size="sm" />
                     </div>
                   </div>
                 </CardContent>
@@ -388,18 +389,19 @@ export function DashboardContent({
       {/* Charts Section */}
       {hasData && !isLoading && (
         <Card className="overflow-hidden">
-          <CardHeader className="border-b border-border/50 bg-slate-50/50">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <CardHeader className="border-b border-border/50 bg-slate-50/50 p-3 sm:p-4 md:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
                 </svg>
-                Frequency Analysis
+                <span className="hidden xs:inline">Frequency Analysis</span>
+                <span className="xs:hidden">Analysis</span>
               </CardTitle>
-              <Badge variant="secondary">{analysis.totalResults} records</Badge>
+              <Badge variant="secondary" size="sm">{analysis.totalResults}</Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 md:p-6">
             <AnalysisCharts analysis={analysis} />
           </CardContent>
         </Card>
@@ -407,16 +409,17 @@ export function DashboardContent({
 
       {/* Prediction Tables */}
       {hasData && !isLoading && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           {(["AS", "KOP", "KEPALA", "EKOR"] as const).map((position) => (
             <Card key={position} className="overflow-hidden" hover>
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b p-3 sm:p-4 md:p-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs sm:text-sm">
                       {position.charAt(0)}
                     </span>
-                    {position} Predictions
+                    <span className="hidden xs:inline">{position} Predictions</span>
+                    <span className="xs:hidden">{position}</span>
                   </CardTitle>
                   <Badge variant="outline" size="sm">
                     Top {analysis.prediction[position].length}
@@ -427,26 +430,26 @@ export function DashboardContent({
                 <Table>
                   <thead className="bg-slate-50/80">
                     <Tr>
-                      <Th className="font-semibold">#</Th>
-                      <Th className="font-semibold">Digit</Th>
-                      <Th className="font-semibold">Score</Th>
-                      <Th className="font-semibold hidden sm:table-cell">Confidence</Th>
+                      <Th className="font-semibold text-xs">#</Th>
+                      <Th className="font-semibold text-xs">Digit</Th>
+                      <Th className="font-semibold text-xs">Score</Th>
+                      <Th className="font-semibold hidden sm:table-cell text-xs">Confidence</Th>
                     </Tr>
                   </thead>
                   <tbody>
                     {analysis.prediction[position].map((row, index) => (
                       <Tr key={row.digit} className={`${index === 0 ? 'bg-primary/5' : index % 2 === 0 ? 'bg-slate-50/50' : ''}`}>
-                        <Td>
-                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-sm font-bold ${index === 0 ? 'bg-primary text-white shadow-md' : 'bg-slate-200 text-slate-600'}`}>
+                        <Td className="py-2 sm:py-3">
+                          <span className={`inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg text-xs sm:text-sm font-bold ${index === 0 ? 'bg-primary text-white shadow-md' : 'bg-slate-200 text-slate-600'}`}>
                             {index + 1}
                           </span>
                         </Td>
-                        <Td>
-                          <span className={`inline-flex items-center justify-center w-10 h-10 rounded-xl font-bold text-lg digit-display ${index === 0 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700'}`}>
+                        <Td className="py-2 sm:py-3">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg font-bold digit-display ${index === 0 ? 'bg-primary text-white text-sm sm:text-lg' : 'bg-slate-100 text-slate-700 text-base sm:text-lg'}`}>
                             {row.digit}
                           </span>
                         </Td>
-                        <Td>
+                        <Td className="py-2 sm:py-3">
                           <div className="flex items-center gap-2">
                             <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
                               <div 

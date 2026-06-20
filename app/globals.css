@@ -257,3 +257,43 @@ body {
   background: linear-gradient(135deg, hsl(var(--cold)) 0%, hsl(186 70% 35%) 100%);
   color: white;
 }
+
+/* Mobile Bottom Nav Safe Area */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-pb {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  /* Better touch targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text selection on UI elements */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Smooth scrolling */
+  .scroll-smooth {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Full width cards on mobile */
+  .mobile-full {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0;
+  }
+  
+  /* Compact spacing for mobile */
+  .mobile-spacing {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+}
