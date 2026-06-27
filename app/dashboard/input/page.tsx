@@ -140,9 +140,18 @@ export default function InputPage() {
       </button>
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Pendekatan Komposisi Digit</h1>
-        <p className="text-sm text-muted-foreground mt-1">Analisis komposisi angka 4D: keseimbangan genap-ganjil dan jumlah total</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Pendekatan Komposisi Digit</h1>
+          <p className="text-sm text-muted-foreground mt-1">Analisis komposisi angka 4D: keseimbangan genap-ganjil dan jumlah total</p>
+        </div>
+        <button
+          onClick={() => selectedSnapshotId && fetchAnalysis(selectedSnapshotId)}
+          disabled={loading || !selectedSnapshotId}
+          className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          🔄 Refresh
+        </button>
       </div>
 
       {/* Snapshot Selector */}
