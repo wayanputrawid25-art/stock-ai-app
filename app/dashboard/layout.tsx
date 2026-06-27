@@ -71,16 +71,15 @@ function Sidebar({ navItems, isOpen, onClose, isMobile = false }: { navItems: Na
       {/* Mobile Overlay */}
       {isMobile && isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
       
+      {/* Desktop Sidebar - Fixed width 280px */}
       <aside className={`
-        ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-[300px]' : 'hidden md:flex'}
-        relative flex flex-col h-full bg-gradient-to-b from-white via-white to-slate-50/50 border-r border-border/40
-        transform transition-transform duration-300 ease-in-out
-        ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}
+        hidden lg:flex w-[280px] flex-shrink-0
+        relative flex-col h-screen bg-gradient-to-b from-white via-white to-slate-50/50 border-r border-border/40
       `}>
         {/* Subtle gradient accent */}
         <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-primary/4 via-primary/2 to-transparent pointer-events-none rounded-br-3xl"></div>
@@ -98,18 +97,6 @@ function Sidebar({ navItems, isOpen, onClose, isMobile = false }: { navItems: Na
               </span>
             </div>
           </div>
-          
-          {/* Mobile Close Button */}
-          {isMobile && (
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
         </div>
 
         {/* Navigation */}
@@ -125,7 +112,110 @@ function Sidebar({ navItems, isOpen, onClose, isMobile = false }: { navItems: Na
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={isMobile ? onClose : undefined}
+                className={`
+                  group flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium
+                  transition-all duration-200 animate-fade-in border border-transparent
+                  ${isActive ? colors.active : `${colors.bg} ${colors.text} ${colors.hover}`}
+                `}
+                style={{ animationDelay: `${index * 40}ms` }}
+              >
+                <span className={`p-2 rounded-lg ${colors.iconBg} text-white shadow-sm transition-transform group-hover:scale-105`}>
+                  <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={item.icon} />
+                  </svg>
+                </span>
+                <span className="flex-1">{item.label}</span>
+                <svg className="w-4 h-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="relative px-4 py-5 space-y-3 border-t border-border/30">
+          <div className="px-3 py-1">
+            <div className="rounded-2xl bg-gradient-to-br from-primary/8 via-primary/5 to-secondary/5 p-4 text-center border border-primary/10">
+              <div className="w-8 h-8 mx-auto mb-2 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-sm">
+                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1 font-medium">
+                Premium Access
+              </p>
+              <p className="text-xs font-semibold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
+                4D Pro Member
+              </p>
+            </div>
+          </div>
+          
+          <form action="/api/logout" method="post">
+            <Button 
+              type="submit" 
+              variant="ghost" 
+              className="w-full justify-start gap-3.5 text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-xl"
+            >
+              <span className="p-2 rounded-lg bg-muted">
+                <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                </svg>
+              </span>
+              Logout
+            </Button>
+          </form>
+        </div>
+      </aside>
+
+      {/* Mobile Sidebar - Slide out drawer */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-[300px] lg:hidden
+        flex flex-col h-full bg-gradient-to-b from-white via-white to-slate-50/50 border-r border-border/40
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        {/* Gradient accent */}
+        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-primary/4 via-primary/2 to-transparent pointer-events-none rounded-br-3xl"></div>
+        
+        {/* Header */}
+        <div className="relative flex h-16 items-center justify-between px-5 border-b border-border/30">
+          <div className="flex items-center gap-3">
+            <LogoIcon />
+            <div className="flex flex-col">
+              <span className="text-base font-bold bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
+                4D Pro
+              </span>
+              <span className="text-[10px] text-muted-foreground/70 uppercase tracking-widest font-medium">
+                Analyzer
+              </span>
+            </div>
+          </div>
+          
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="relative flex-1 px-4 py-5 space-y-1.5 overflow-y-auto">
+          <p className="px-4 pb-2 text-[11px] font-semibold text-muted-foreground/50 uppercase tracking-wider">
+            Menu
+          </p>
+          {navItems.map((item, index) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "?");
+            const colors = colorMap[item.color];
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
                 className={`
                   group flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium
                   transition-all duration-200 animate-fade-in border border-transparent
@@ -187,8 +277,8 @@ function Sidebar({ navItems, isOpen, onClose, isMobile = false }: { navItems: Na
 
 function MobileHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
   return (
-    <header className="md:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-xl border-b border-border/40">
-      <div className="flex h-16 items-center justify-between px-4">
+    <header className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-xl border-b border-border/40">
+      <div className="flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <LogoIcon className="w-8 h-8" />
           <div className="flex flex-col">
@@ -224,12 +314,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Sidebar navItems={navItems} isOpen={true} onClose={() => setIsMobileMenuOpen(false)} />
+      <Sidebar navItems={navItems} isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       <MobileHeader onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-      <Sidebar navItems={navItems} isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} isMobile />
       
-      <main className="flex-1 overflow-auto pt-16 pb-20 md:pt-0 md:pb-8">
-        <div className="h-full p-4 sm:p-6 md:p-8">
+      <main className="flex-1 overflow-auto pt-14 pb-6 lg:pt-0 lg:pb-0">
+        <div className="h-full p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>
