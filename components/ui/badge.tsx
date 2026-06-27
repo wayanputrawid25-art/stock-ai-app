@@ -9,7 +9,7 @@ interface BadgeProps {
 }
 
 export function Badge({ children, variant = "default", className = "", size = "sm" }: BadgeProps) {
-  const baseClasses = "inline-flex items-center font-semibold uppercase tracking-wide";
+  const baseClasses = "inline-flex items-center font-medium tracking-tight";
   
   const sizeClasses = {
     sm: "px-2 py-0.5 text-[10px] rounded-md",
@@ -19,14 +19,14 @@ export function Badge({ children, variant = "default", className = "", size = "s
 
   const variantClasses = {
     default: "bg-primary/10 text-primary",
-    secondary: "bg-secondary/10 text-secondary-foreground",
-    success: "bg-success/10 text-success",
-    warning: "bg-warning/10 text-warning",
-    destructive: "bg-destructive/10 text-destructive",
-    info: "bg-info/10 text-info",
-    hot: "bg-gradient-to-r from-hot/20 to-hot-light text-hot",
-    cold: "bg-gradient-to-r from-cold/20 to-cold-light text-cold",
-    outline: "border-2 border-border text-foreground",
+    secondary: "bg-secondary/15 text-secondary-foreground",
+    success: "bg-success/15 text-success",
+    warning: "bg-warning/15 text-warning",
+    destructive: "bg-destructive/15 text-destructive",
+    info: "bg-info/15 text-info",
+    hot: "bg-gradient-to-r from-hot/15 to-hot-light text-hot font-semibold",
+    cold: "bg-gradient-to-r from-cold/15 to-cold-light text-cold font-semibold",
+    outline: "border border-border/60 text-foreground",
   };
 
   return (

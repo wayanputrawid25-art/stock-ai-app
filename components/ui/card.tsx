@@ -5,9 +5,9 @@ export function Card({ className, hover = false, gradient = false, ...props }: R
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/50 bg-white shadow-sm",
+        "rounded-xl border border-border/60 bg-white shadow-sm",
         hover && "transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer",
-        gradient && "bg-gradient-to-br from-white to-slate-50",
+        gradient && "bg-gradient-to-br from-white to-slate-50/50",
         className
       )}
       {...props}
@@ -16,11 +16,11 @@ export function Card({ className, hover = false, gradient = false, ...props }: R
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-6 py-5", className)} {...props} />;
+  return <div className={cn("px-5 py-4", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-lg font-semibold text-foreground tracking-tight", className)} {...props} />;
+  return <h3 className={cn("text-base font-semibold text-foreground tracking-tight", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
@@ -28,9 +28,9 @@ export function CardDescription({ className, ...props }: React.HTMLAttributes<HT
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-6 py-5 pt-0", className)} {...props} />;
+  return <div className={cn("px-5 py-4 pt-0", className)} {...props} />;
 }
 
 export function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-6 py-4 border-t border-border/50 bg-slate-50/50 rounded-b-xl", className)} {...props} />;
+  return <div className={cn("px-5 py-3 border-t border-border/40 bg-slate-50/30 rounded-b-xl", className)} {...props} />;
 }
