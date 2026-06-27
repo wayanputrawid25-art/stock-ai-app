@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import Tesseract from "tesseract.js";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { LoadingState } from "@/components/LoadingState";
 import {
   Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
@@ -21,7 +22,20 @@ import {
   type DifferenceRow,
 } from "@/lib/difference-analysis";
 
-function Icon({ type, className = "" }: { type: "upload" | "check" | "alert" | "loader" | "camera" | "plus" | "trash" | "table" | "chart"; className?: string }) {
+interface Snapshot {
+  id: string;
+  title: string;
+  color: string;
+  _count?: { results: number };
+}
+
+interface SnapshotResult {
+  id: string;
+  resultNumber: string;
+  drawDate: string;
+}
+
+function Icon({ type, className = "" }: { type: "upload" | "check" | "alert" | "loader" | "camera" | "plus" | "trash" | "table" | "chart" | "database"; className?: string }) {
   const paths: Record<string, string> = {
     upload: "M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2",
     check: "M9 12.75 11.25 15 15.75 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
@@ -31,6 +45,7 @@ function Icon({ type, className = "" }: { type: "upload" | "check" | "alert" | "
     trash: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0",
     table: "M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0 1 18 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 7.746 6 7.125v-1.5M4.875 8.25C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0 0 18 7.125v-1.5m1.125 2.625c-.621 0-1.125.504-1.125 1.125v1.5m2.625-2.625c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M18 5.625v5.25M7.125 12h9.75m-9.75 0A1.125 1.125 0 0 0 6 13.125v-1.5m0-5.25v-1.5c0-.621.504-1.125 1.125-1.125H18m-1.5 0H6m0 0h1.5M6 5.625h1.5m0 0H6m0 0v1.5M18 5.625v1.5M18 5.625c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125H6m0 0h9.75M6 13.125h1.5m0 0h1.5M6 13.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125H6m0 0h9.75m-9.75 0A1.125 1.125 0 0 1 6 12.75v-1.5m0-5.25v-1.5c0-.621.504-1.125 1.125-1.125H18m0 0h1.5M6 12.75V5.625m0 12.75c0 .621.504 1.125 1.125 1.125H6m0 0h9.75M18 19.5h-9.75M18 19.5a1.125 1.125 0 0 0 1.125-1.125V18m0 0v1.5c0 .621-.504 1.125-1.125 1.125H6m0 0h9.75M18 13.125v1.5c0 .621-.504 1.125-1.125 1.125H6m0 0h9.75M18 13.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125H6m0 0h9.75M6 13.125H4.875A1.125 1.125 0 0 0 3.75 14.25V18m0 0v1.5c0 .621.504 1.125 1.125 1.125H6",
     chart: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
+    database: "M3 3l8.735 8.735c.282.282.439.659.439 1.06V21h5.826c.401 0 .778-.157 1.06-.439L21 12M3 3l8.735 8.735M3 3v8.735M3 3h8.735M12 12l8.735 8.735M12 12v8.735M12 12H3.265",
   };
 
   if (type === "loader") {
@@ -209,7 +224,14 @@ function StatisticsCard({ position, stats }: { position: Position; stats: Analys
   );
 }
 
-export function DifferenceAnalyzer() {
+export function DifferenceAnalyzer({ initialSnapshots }: { initialSnapshots: Snapshot[] }) {
+  const searchParams = useSearchParams();
+  
+  const initialSnapshotId = searchParams.get("snapshot") || initialSnapshots[0]?.id || null;
+  const [activeSnapshotId, setActiveSnapshotId] = useState<string | null>(initialSnapshotId);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>(initialSnapshots);
+  const [snapshotResults, setSnapshotResults] = useState<SnapshotResult[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [manualInput, setManualInput] = useState("");
   const [ocrResult, setOcrResult] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
@@ -218,18 +240,98 @@ export function DifferenceAnalyzer() {
   const [scanStatus, setScanStatus] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Perform analysis when OCR result or manual input changes
+  // Fetch snapshots
+  const fetchSnapshots = useCallback(async () => {
+    try {
+      const response = await fetch("/api/snapshots");
+      if (response.ok) {
+        const data = await response.json();
+        setSnapshots(data.snapshots || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch snapshots:", error);
+    }
+  }, []);
+
+  // Fetch results from snapshot
+  const fetchSnapshotResults = useCallback(async (snapshotId: string | null) => {
+    if (!snapshotId) {
+      setSnapshotResults([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/dashboard/difference?snapshot=${snapshotId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSnapshotResults(data.results || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch snapshot results:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const textToAnalyze = ocrResult || manualInput;
+    fetchSnapshotResults(activeSnapshotId);
+    fetchSnapshots();
+  }, [activeSnapshotId, fetchSnapshotResults, fetchSnapshots]);
+
+  // Refresh on visibility change or focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchSnapshotResults(activeSnapshotId);
+        fetchSnapshots();
+      }
+    };
+
+    const handleFocus = () => {
+      fetchSnapshotResults(activeSnapshotId);
+      fetchSnapshots();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [activeSnapshotId, fetchSnapshotResults, fetchSnapshots]);
+
+  // Handle snapshot change from selector
+  const handleSnapshotChange = useCallback((newSnapshotId: string) => {
+    setActiveSnapshotId(newSnapshotId);
+    const newUrl = newSnapshotId ? `/dashboard/analyzer?snapshot=${newSnapshotId}` : "/dashboard/analyzer";
+    window.history.pushState({}, "", newUrl);
+  }, []);
+
+  // Perform analysis when snapshot results, OCR result, or manual input changes
+  useEffect(() => {
+    let textToAnalyze = ocrResult || manualInput;
+    
+    // If no manual/OCR input, use snapshot results
+    if (!textToAnalyze.trim() && snapshotResults.length > 0) {
+      textToAnalyze = snapshotResults.map(r => r.resultNumber).join("\n");
+    }
+    
     if (textToAnalyze.trim()) {
       const results = parseResultsFromText(textToAnalyze);
       if (results.length > 0) {
         const analysisResult = analyzeDifferences(results);
         setAnalysis(analysisResult);
-        setMessage({ type: "success", text: `Analyzed ${results.length} results successfully` });
+        if (ocrResult || manualInput) {
+          setMessage({ type: "success", text: `Analyzed ${results.length} results successfully` });
+        } else if (snapshotResults.length > 0) {
+          setMessage({ type: "success", text: `Loaded ${results.length} results from snapshot` });
+        }
       } else {
         setAnalysis(null);
         if (textToAnalyze.trim()) {
@@ -239,7 +341,7 @@ export function DifferenceAnalyzer() {
     } else {
       setAnalysis(null);
     }
-  }, [ocrResult, manualInput]);
+  }, [snapshotResults, ocrResult, manualInput]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -265,7 +367,7 @@ export function DifferenceAnalyzer() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("image/")) {
       if (fileInputRef.current) {
@@ -290,6 +392,8 @@ export function DifferenceAnalyzer() {
     setMessage(null);
 
     try {
+      // Dynamically import Tesseract to avoid SSR issues
+      const Tesseract = (await import("tesseract.js")).default;
       const result = await Tesseract.recognize(file, "eng", {
         logger: (m) => {
           if (m.status === "recognizing text") {
@@ -320,8 +424,9 @@ export function DifferenceAnalyzer() {
     }
   };
 
-  const frequencyData = analysis ? getFrequencyData(analysis.parsedResults) : null;
+  // Compute chart data from analysis
   const differenceData = analysis ? getDifferenceDistribution(analysis.statistics) : null;
+  const frequencyData = analysis ? getFrequencyData(analysis.parsedResults) : null;
 
   return (
     <div className="space-y-8">
@@ -330,6 +435,62 @@ export function DifferenceAnalyzer() {
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">4D Historical Difference Analyzer</h1>
         <p className="text-sm text-muted-foreground mt-1">Analyze historical 4D results and calculate digit differences</p>
       </div>
+
+      {/* Snapshot Selector */}
+      <Card className="shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b py-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Icon type="database" className="w-5 h-5" />
+            Select Snapshot
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {isLoading && snapshots.length > 0 ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Icon type="loader" className="w-4 h-4 animate-spin" />
+              Memuat data...
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <select
+                  value={activeSnapshotId || ""}
+                  onChange={(e) => handleSnapshotChange(e.target.value)}
+                  disabled={isLoading}
+                  className={`
+                    w-full px-4 py-2.5 rounded-lg border bg-white text-sm appearance-none 
+                    cursor-pointer outline-none transition-all duration-200
+                    ${isLoading 
+                      ? 'border-gray-300 bg-gray-100 cursor-wait opacity-70' 
+                      : 'border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                    }
+                  `}
+                >
+                  <option value="">-- Pilih Snapshot --</option>
+                  {snapshots.map((snapshot) => (
+                    <option key={snapshot.id} value={snapshot.id}>
+                      {snapshot.title} ({snapshot._count?.results || 0} results)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Current Snapshot Info */}
+              {activeSnapshotId && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium">
+                    {snapshots.find(s => s.id === activeSnapshotId)?.title || "Loading..."}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({snapshotResults.length} data)
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Input Section */}
       <Card className="shadow-sm">
@@ -418,18 +579,25 @@ export function DifferenceAnalyzer() {
             )}
           </div>
 
-          {/* Manual Input */}
+          {/* Manual Input - Override snapshot data if needed */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Manual Input / OCR Result
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">
+                Manual Input {snapshotResults.length > 0 && "(Override Snapshot Data)"}
+              </label>
+              {snapshotResults.length > 0 && (
+                <span className="text-xs text-muted-foreground bg-amber-100 px-2 py-1 rounded">
+                  {snapshotResults.length} snapshot data available
+                </span>
+              )}
+            </div>
             <Textarea
-              value={ocrResult || manualInput}
+              value={manualInput}
               onChange={(e) => {
                 setOcrResult("");
                 setManualInput(e.target.value);
               }}
-              placeholder={"Enter 4-digit numbers (one per line) or paste OCR result..."}
+              placeholder={snapshotResults.length > 0 ? "Leave empty to use snapshot data..." : "Enter 4-digit numbers (one per line)..."}
               rows={6}
               className="font-mono"
             />
