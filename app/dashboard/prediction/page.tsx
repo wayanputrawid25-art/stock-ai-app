@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { PredictionPanel } from "@/components/prediction-panel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InputModal } from "@/components/InputModal";
 
 interface Snapshot {
   id: string;
@@ -78,6 +79,7 @@ function Icon({ type, className = "" }: { type: "refresh" | "loader"; className?
 export default function PredictionPage() {
   const searchParams = useSearchParams();
   const urlSnapshotId = searchParams.get("snapshot");
+  const [showInputModal, setShowInputModal] = useState(false);
   
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(urlSnapshotId);
@@ -142,8 +144,36 @@ export default function PredictionPage() {
   const currentSnapshot = snapshots.find(s => s.id === selectedSnapshotId);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <>
+      <div className="space-y-6">
+        {/* Input Data Button - Opens Modal */}
+        <button
+          onClick={() => setShowInputModal(true)}
+          className="w-full"
+        >
+          <Card className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 transition-all cursor-pointer shadow-sm">
+            <CardContent className="py-4 px-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 4v16m8-8H4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white font-semibold">Input Data</p>
+                    <p className="text-white/80 text-xs">Upload gambar atau input manual</p>
+                  </div>
+                </div>
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </CardContent>
+          </Card>
+        </button>
+
+        <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-normal">Predictions & Analysis</h1>
         <div className="flex gap-2 items-center">
           <select
@@ -205,6 +235,14 @@ export default function PredictionPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+
+      {/* Input Modal */}
+      <InputModal 
+        isOpen={showInputModal} 
+        onClose={() => setShowInputModal(false)}
+        buttonLabel="Simpan Data"
+      />
+    </>
   );
 }

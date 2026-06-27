@@ -221,6 +221,138 @@ export function getFrequencyData(results: ParsedResult[]) {
   return frequency;
 }
 
+// Get hot digits based on DIFFERENCE patterns - digits that tend to increase (positive trend)
+// Uses analysis result which contains both parsedResults and differences
+export function getHotDigits(analysis: AnalysisResult, position: Position, count: number = 4): number[] {
+  const posKey = POSITION_KEY_MAP[position];
+  
+  // Track which digits lead to positive differences
+  const digitPositiveDiff: Record<number, number> = {};
+  const digitNegativeDiff: Record<number, number> = {};
+  const digitZeroDiff: Record<number, number> = {};
+  
+  // Initialize
+  for (let i = 0; i <= 9; i++) {
+    digitPositiveDiff[i] = 0;
+    digitNegativeDiff[i] = 0;
+    digitZeroDiff[i] = 0;
+  }
+  
+  // Analyze each difference row
+  analysis.differences.forEach((diff) => {
+    if (diff.differences[posKey] === null) return;
+    
+    const currentDigit = diff.current[posKey];
+    const diffValue = diff.differences[posKey];
+    
+    if (diffValue > 0) {
+      digitPositiveDiff[currentDigit]++;
+    } else if (diffValue < 0) {
+      digitNegativeDiff[currentDigit]++;
+    } else {
+      digitZeroDiff[currentDigit]++;
+    }
+  });
+  
+  // Score each digit based on positive difference tendency
+  // Higher score = more likely to increase
+  const digitScores = Object.entries(digitPositiveDiff).map(([digit, posCount]) => {
+    const negCount = digitNegativeDiff[Number(digit)] || 0;
+    const zeroCount = digitZeroDiff[Number(digit)] || 0;
+    const total = posCount + negCount + zeroCount;
+    
+    // Score: positive diffs weighted higher, penalize negative diffs
+    const score = total > 0 ? (posCount * 2 - negCount) / total : 0;
+    
+    return { digit: Number(digit), score, positiveCount: posCount };
+  });
+  
+  return digitScores
+    .filter(d => d.positiveCount > 0) // Only include digits with positive diffs
+    .sort((a, b) => b.score - a.score || a.digit - b.digit)
+    .slice(0, count)
+    .map(d => d.digit);
+}
+
+// Get cold digits based on DIFFERENCE patterns - digits that tend to decrease (negative trend)
+export function getColdDigits(analysis: AnalysisResult, position: Position, count: number = 4): number[] {
+  const posKey = POSITION_KEY_MAP[position];
+  
+  const digitNegativeDiff: Record<number, number> = {};
+  const digitPositiveDiff: Record<number, number> = {};
+  
+  for (let i = 0; i <= 9; i++) {
+    digitNegativeDiff[i] = 0;
+    digitPositiveDiff[i] = 0;
+  }
+  
+  analysis.differences.forEach((diff) => {
+    if (diff.differences[posKey] === null) return;
+    
+    const currentDigit = diff.current[posKey];
+    const diffValue = diff.differences[posKey];
+    
+    if (diffValue < 0) {
+      digitNegativeDiff[currentDigit]++;
+    } else if (diffValue > 0) {
+      digitPositiveDiff[currentDigit]++;
+    }
+  });
+  
+  // Score: higher = more likely to decrease
+  const digitScores = Object.entries(digitNegativeDiff).map(([digit, negCount]) => {
+    const posCount = digitPositiveDiff[Number(digit)] || 0;
+    const total = negCount + posCount;
+    
+    const score = total > 0 ? (negCount * 2 - posCount) / total : 0;
+    
+    return { digit: Number(digit), score, negativeCount: negCount };
+  });
+  
+  return digitScores
+    .filter(d => d.negativeCount > 0)
+    .sort((a, b) => b.score - a.score || a.digit - b.digit)
+    .slice(0, count)
+    .map(d => d.digit);
+}
+
+// Get stable digits - digits that tend to stay the same (zero difference)
+export function getStableDigits(analysis: AnalysisResult, position: Position, count: number = 4): number[] {
+  const posKey = POSITION_KEY_MAP[position];
+  
+  const digitZeroDiff: Record<number, number> = {};
+  const digitTotal: Record<number, number> = {};
+  
+  for (let i = 0; i <= 9; i++) {
+    digitZeroDiff[i] = 0;
+    digitTotal[i] = 0;
+  }
+  
+  analysis.differences.forEach((diff) => {
+    if (diff.differences[posKey] === null) return;
+    
+    const currentDigit = diff.current[posKey];
+    const diffValue = diff.differences[posKey];
+    
+    digitTotal[currentDigit]++;
+    if (diffValue === 0) {
+      digitZeroDiff[currentDigit]++;
+    }
+  });
+  
+  const digitScores = Object.entries(digitZeroDiff).map(([digit, zeroCount]) => {
+    const total = digitTotal[Number(digit)] || 0;
+    const stabilityRatio = total > 0 ? zeroCount / total : 0;
+    return { digit: Number(digit), score: stabilityRatio, zeroCount };
+  });
+  
+  return digitScores
+    .filter(d => d.zeroCount > 0)
+    .sort((a, b) => b.score - a.score || a.digit - b.digit)
+    .slice(0, count)
+    .map(d => d.digit);
+}
+
 // Get difference distribution for charts
 export function getDifferenceDistribution(statistics: AnalysisResult["statistics"]) {
   const positions: Position[] = ["AS", "KOP", "KEPALA", "EKOR"];
