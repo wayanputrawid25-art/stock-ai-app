@@ -8,6 +8,9 @@
     },
     "app/api/export/[format]/route.ts": {
       "maxDuration": 30
+    },
+    "app/api/dashboard/digit-composition/route.ts": {
+      "maxDuration": 30
     }
   }
 }
