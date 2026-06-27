@@ -61,6 +61,26 @@ function CollapsibleSection({ title, children, defaultOpen = true }: {
   );
 }
 
+function LogoIcon({ className = "w-10 h-10" }: { className?: string }) {
+  return (
+    <div className={`${className} relative`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary-light rounded-xl opacity-20 blur-md"></div>
+      <svg viewBox="0 0 36 36" fill="none" className="relative w-full h-full" aria-hidden="true">
+        <defs>
+          <linearGradient id="logoGradInput" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(var(--primary))" />
+            <stop offset="100%" stopColor="hsl(var(--primary-light))" />
+          </linearGradient>
+        </defs>
+        <rect x="3" y="3" width="30" height="30" rx="9" fill="url(#logoGradInput)" fillOpacity="0.15" />
+        <rect x="3" y="3" width="30" height="30" rx="9" stroke="url(#logoGradInput)" strokeWidth="2" />
+        <path d="M12 18h12M18 12v12" stroke="url(#logoGradInput)" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="18" cy="18" r="4" fill="url(#logoGradInput)" />
+      </svg>
+    </div>
+  );
+}
+
 export default function InputPage() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
@@ -112,45 +132,54 @@ export default function InputPage() {
 
   return (
     <div className="space-y-6">
-      {/* Input Data Button */}
-      <button
-        onClick={() => setShowInputModal(true)}
-        className="w-full"
-      >
-        <Card className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 transition-all cursor-pointer shadow-sm">
-          <CardContent className="py-4 px-4">
-            <div className="flex items-center justify-between">
+      {/* Header with Logo */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <LogoIcon className="w-12 h-12 sm:w-14 sm:h-14" />
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-primary to-primary-light bg-clip-text text-transparent">
+                Probabilitas
+              </span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Analisis komposisi angka 4D</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowInputModal(true)}
+          className="sm:ml-auto"
+        >
+          <Card className="bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary-light transition-all cursor-pointer shadow-md">
+            <CardContent className="py-3 px-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 4v16m8-8H4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <p className="text-white font-semibold">Input Data</p>
-                  <p className="text-white/80 text-xs">Upload gambar atau input manual</p>
+                  <p className="text-white font-semibold text-sm">Input Data</p>
+                  <p className="text-white/80 text-xs">Upload gambar atau manual</p>
                 </div>
               </div>
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </CardContent>
-        </Card>
-      </button>
+            </CardContent>
+          </Card>
+        </button>
+      </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Pendekatan Komposisi Digit</h1>
-          <p className="text-sm text-muted-foreground mt-1">Analisis komposisi angka 4D: keseimbangan genap-ganjil dan jumlah total</p>
-        </div>
+      {/* Sub Header */}
+      <div className="flex items-center justify-end">
         <button
           onClick={() => selectedSnapshotId && fetchAnalysis(selectedSnapshotId)}
           disabled={loading || !selectedSnapshotId}
-          className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 text-sm bg-gradient-to-r from-primary/10 to-primary-light/10 text-primary rounded-lg hover:from-primary/20 hover:to-primary-light/20 disabled:opacity-50 disabled:cursor-not-allowed border border-primary/20 transition-all"
         >
-          🔄 Refresh
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Refresh
+          </span>
         </button>
       </div>
 
