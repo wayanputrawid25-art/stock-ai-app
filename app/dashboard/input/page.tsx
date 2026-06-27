@@ -218,7 +218,7 @@ export default function InputPage() {
             <CardContent className="space-y-4">
               <p className="text-sm text-gray-600">
                 Analisis rasio antara jumlah angka genap dan ganjil dalam setiap kombinasi 4D.
-                Contoh: kombinasi "1234" memiliki 2 angka genap (2, 4) dan 2 angka ganjil (1, 3).
+                Contoh: kombinasi <code>1234</code> memiliki 2 angka genap (2, 4) dan 2 angka ganjil (1, 3).
               </p>
               
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
