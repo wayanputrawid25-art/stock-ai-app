@@ -267,7 +267,7 @@ export function PredictionPanel({ analysis }: PredictionPanelProps) {
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Hot</p>
                 <div className="flex gap-1 mt-1">
-                  {analysis.hotDigits.slice(0, 4).map((d) => (
+                  {analysis.hotDigits.slice(0, 6).map((d) => (
                     <span key={d} className="w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-hot/20 text-hot text-xs sm:text-sm font-bold flex items-center justify-center">{d}</span>
                   ))}
                 </div>
@@ -284,7 +284,7 @@ export function PredictionPanel({ analysis }: PredictionPanelProps) {
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Cold</p>
                 <div className="flex gap-1 mt-1">
-                  {analysis.coldDigits.slice(0, 4).map((d) => (
+                  {analysis.coldDigits.slice(0, 6).map((d) => (
                     <span key={d} className="w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-cold/20 text-cold text-xs sm:text-sm font-bold flex items-center justify-center">{d}</span>
                   ))}
                 </div>
@@ -303,7 +303,7 @@ export function PredictionPanel({ analysis }: PredictionPanelProps) {
                 <Icon name="fire" className="w-5 h-5" />
                 Hot Digits
               </CardTitle>
-              <Badge variant="hot" size="md">Top 4</Badge>
+              <Badge variant="hot" size="md">Top 6</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-6">
@@ -325,7 +325,7 @@ export function PredictionPanel({ analysis }: PredictionPanelProps) {
                 <Icon name="snow" className="w-5 h-5" />
                 Cold Digits
               </CardTitle>
-              <Badge variant="cold" size="md">Top 4</Badge>
+              <Badge variant="cold" size="md">Top 6</Badge>
             </div>
           </CardHeader>
           <CardContent className="p-6">

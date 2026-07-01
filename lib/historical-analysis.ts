@@ -561,8 +561,8 @@ export function analyzeHistoricalData(records: ResultRecord[]): HistoricalAnalys
   const overallFrequency = calculateOverallFrequency(sorted);
 
   const sortedByFreq = [...overallFrequency].sort(sortByCountDescending);
-  const hotDigits = sortedByFreq.slice(0, 4).map((f) => f.digit);
-  const coldDigits = sortedByFreq.slice(-4).map((f) => f.digit);
+  const hotDigits = sortedByFreq.slice(0, 6).map((f) => f.digit);
+  const coldDigits = sortedByFreq.slice(-6).map((f) => f.digit);
 
   const positionAnalysis: Record<Position, PositionAnalysisData> = {} as Record<Position, PositionAnalysisData>;
   const positionScores: Record<Position, DigitScore[]> = {} as Record<Position, DigitScore[]>;
@@ -572,8 +572,8 @@ export function analyzeHistoricalData(records: ResultRecord[]): HistoricalAnalys
     const gapStats = calculateGapStats(sorted, position);
     const trends = calculateTrends(sorted, position);
     
-    const hotForPos = [...frequency].sort(sortByCountDescending).slice(0, 4).map((f) => f.digit);
-    const coldForPos = [...frequency].sort(sortByCountAscending).slice(0, 4).map((f) => f.digit);
+    const hotForPos = [...frequency].sort(sortByCountDescending).slice(0, 6).map((f) => f.digit);
+    const coldForPos = [...frequency].sort(sortByCountAscending).slice(0, 6).map((f) => f.digit);
     
     const scores = calculateDigitScores(frequency, trends, gapStats, totalRecords);
 

@@ -209,11 +209,11 @@ export function DashboardContent({
     if (frequency.length === 0) return { top: null, low: null };
     
     const sortedByCount = [...frequency].sort((a, b) => b.count - a.count || b.digit - a.digit);
-    const topDigit = sortedByCount[0];
+    const topDigits = sortedByCount.slice(0, 6).map(f => f.digit);
     const sortedByLow = [...frequency].sort((a, b) => a.count - b.count || a.digit - b.digit);
-    const lowDigit = sortedByLow[0];
+    const lowDigits = sortedByLow.slice(0, 6).map(f => f.digit);
     
-    return { top: topDigit?.digit, low: lowDigit?.digit };
+    return { top: topDigits, low: lowDigits };
   };
 
   return (
@@ -361,22 +361,37 @@ export function DashboardContent({
             
             return (
               <Card key={position} className={`overflow-hidden bg-gradient-to-br ${positionColors[idx]}`}>
-                <CardContent className="p-3 sm:p-4 md:p-6">
-                  <div className="flex items-center justify-between mb-2 sm:mb-4">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-slate-700 text-sm sm:text-base">{position}</h3>
                     <Badge variant={idx === 0 ? "default" : "secondary"} size="sm">
                       {idx + 1}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-center gap-2 sm:gap-4">
+                  <div className="space-y-2">
+                    {/* TOP 6 Digits */}
                     <div className="text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">TOP</p>
-                      <AnimatedDigit value={top} delay={idx * 100} size="sm" />
+                      <p className="text-[10px] sm:text-xs text-orange-600 font-medium mb-1">🔥 TOP 6</p>
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {(top ?? []).map((digit, i) => (
+                          <div key={`top-${i}`} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
+                            <span className="text-xs sm:text-sm font-bold text-white">{digit}</span>
+                          </div>
+                        ))}
+                        {(!top || top.length === 0) && <span className="text-slate-400 text-xs">-</span>}
+                      </div>
                     </div>
-                    <div className="text-lg sm:text-2xl font-bold text-slate-300">/</div>
+                    {/* LOW 6 Digits */}
                     <div className="text-center">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">LOW</p>
-                      <AnimatedDigit value={low} delay={idx * 100 + 50} size="sm" />
+                      <p className="text-[10px] sm:text-xs text-blue-600 font-medium mb-1">❄️ LOW 6</p>
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {(low ?? []).map((digit, i) => (
+                          <div key={`low-${i}`} className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-sm">
+                            <span className="text-xs sm:text-sm font-bold text-white">{digit}</span>
+                          </div>
+                        ))}
+                        {(!low || low.length === 0) && <span className="text-slate-400 text-xs">-</span>}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
