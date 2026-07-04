@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
 import { InputModal } from "@/components/InputModal";
+import { PredictionPanel } from "@/components/PredictionPanel";
+import { generatePrediction } from "@/lib/prediction";
 import { 
   Flame, Snowflake, HelpCircle, Hash, 
   Grid3X3, Sparkles,
@@ -74,7 +76,7 @@ interface Snapshot {
 }
 
 // Tab Configuration
-type TabId = "hot-cold" | "position" | "pattern" | "advanced" | "statistics";
+type TabId = "hot-cold" | "position" | "pattern" | "advanced" | "prediction" | "statistics";
 
 interface TabConfig {
   id: TabId;
@@ -83,10 +85,11 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { id: "hot-cold", label: "Hot/Cold/Missing", icon: <Flame className="w-4 h-4" /> },
+  { id: "hot-cold", label: "Hot/Cold", icon: <Flame className="w-4 h-4" /> },
   { id: "position", label: "Position", icon: <Grid3X3 className="w-4 h-4" /> },
   { id: "pattern", label: "Pattern", icon: <PieChartIcon className="w-4 h-4" /> },
   { id: "advanced", label: "Advanced", icon: <Sparkles className="w-4 h-4" /> },
+  { id: "prediction", label: "Prediksi", icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
   { id: "statistics", label: "Statistics", icon: <BarChart3 className="w-4 h-4" /> },
 ];
 
@@ -1112,6 +1115,17 @@ export function Dashboard({ initialSnapshots, initialAnalysis }: DashboardProps)
           {activeTab === "position" && <PositionTab analysis={analysis} />}
           {activeTab === "pattern" && <PatternTab analysis={analysis} />}
           {activeTab === "advanced" && <AdvancedTab analysis={analysis} />}
+          {activeTab === "prediction" && (
+            <PredictionPanel 
+              prediction={generatePrediction(
+                analysis.charts.history.map(h => ({
+                  resultNumber: h.resultNumber,
+                  drawDate: h.drawDate
+                }))
+              )}
+              totalResults={analysis.totalResults}
+            />
+          )}
           {activeTab === "statistics" && <StatisticsTab analysis={analysis} />}
         </>
       ) : (
