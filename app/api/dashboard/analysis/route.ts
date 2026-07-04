@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { analyzeResults } from "@/lib/analysis";
+import { analyzeAll } from "@/lib/analyzer";
 
 export const dynamic = "force-dynamic";
 
@@ -31,16 +31,14 @@ export async function GET(request: NextRequest) {
       select: { resultNumber: true, drawDate: true }
     });
 
-    const totalResults = results.length;
-    const analysis = totalResults > 0 
-      ? { ...analyzeResults(results), totalResults }
-      : { ...analyzeResults([]), totalResults: 0 };
+    // Use consolidated analyzer
+    const analysis = analyzeAll(results);
 
     return NextResponse.json({ 
       analysis,
       snapshotId,
       snapshotTitle: snapshot.title,
-      totalResults
+      totalResults: analysis.totalResults
     });
   } catch (error) {
     console.error("Dashboard analysis error:", error);

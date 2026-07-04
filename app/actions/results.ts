@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { analyzeResults } from "@/lib/analysis";
+import { analyzeAll } from "@/lib/analyzer";
 import { prisma } from "@/lib/db";
 
 export async function runAnalysisAction(formData: FormData) {
@@ -19,7 +19,7 @@ export async function runAnalysisAction(formData: FormData) {
     select: { resultNumber: true, drawDate: true, snapshotId: true }
   });
   
-  const analysis = analyzeResults(results);
+  const analysis = analyzeAll(results);
   
   // If snapshot specified, save to that snapshot's analysis
   const targetSnapshotId = snapshotId || results[0]?.snapshotId;

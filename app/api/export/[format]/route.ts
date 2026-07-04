@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { analyzeResults } from "@/lib/analysis";
+import { analyzeAll } from "@/lib/analyzer";
 import { toCsv, toPdfBuffer, toXlsxBuffer } from "@/lib/export";
 
-function rowsFromAnalysis(analysis: ReturnType<typeof analyzeResults>) {
-  return Object.entries(analysis.prediction).flatMap(([position, rows]) =>
-    rows.map((row, index) => ({ position, rank: index + 1, digit: row.digit, score: row.score, confidence: row.confidence }))
+function rowsFromAnalysis(analysis: ReturnType<typeof analyzeAll>) {
+  return analysis.hot.flatMap((hotData) =>
+    hotData.data.map((row, index) => ({
+      position: hotData.position,
+      rank: index + 1,
+      digit: row.digit,
+      count: row.count,
+      percentage: row.percentage
+    }))
   );
 }
 
@@ -14,11 +20,19 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ format
   try {
     const user = await requireUser();
     const { format } = await params;
+    const snapshotId = new URL(_.nextUrl).searchParams.get("snapshot");
+    
+    const whereClause = snapshotId 
+      ? { userId: user.id, snapshotId }
+      : { userId: user.id };
+    
     const results = await prisma.result.findMany({
-      where: { userId: user.id },
+      where: whereClause,
       select: { resultNumber: true, drawDate: true }
     });
-    const rows = rowsFromAnalysis(analyzeResults(results));
+    
+    const analysis = analyzeAll(results);
+    const rows = rowsFromAnalysis(analysis);
 
     if (format === "csv") {
       return new NextResponse(toCsv(rows), {
@@ -41,7 +55,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ format
 
     if (format === "pdf") {
       const lines = rows.map(
-        (row) => `${row.position} #${row.rank} digit ${row.digit} score ${row.score} confidence ${row.confidence}%`
+        (row) => `${row.position} #${row.rank} digit ${row.digit} count ${row.count} (${row.percentage.toFixed(1)}%)`
       );
       const pdfBuf = toPdfBuffer("Frequency Analyzer 4D Pro - Prediction Report", lines);
       return new NextResponse(new Uint8Array(pdfBuf), {
