@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
 import { InputModal } from "@/components/InputModal";
 import { PredictionPanel } from "@/components/PredictionPanel";
+import { HistoryJourneyPanel } from "@/components/HistoryJourneyPanel";
 import { generatePrediction } from "@/lib/prediction";
 import { 
   Flame, Snowflake, HelpCircle, Hash, 
@@ -16,7 +17,8 @@ import {
   PieChart as PieChartIcon, Calculator,
   GitBranch, Search, ArrowUpDown,
   BarChart3, Clock, Table2,
-  SlidersHorizontal, ArrowLeftRight
+  SlidersHorizontal, ArrowLeftRight,
+  Map, Route
 } from "lucide-react";
 
 // Types
@@ -76,7 +78,7 @@ interface Snapshot {
 }
 
 // Tab Configuration
-type TabId = "hot-cold" | "position" | "pattern" | "advanced" | "prediction" | "statistics";
+type TabId = "hot-cold" | "position" | "pattern" | "advanced" | "prediction" | "statistics" | "journey";
 
 interface TabConfig {
   id: TabId;
@@ -90,6 +92,7 @@ const TABS: TabConfig[] = [
   { id: "pattern", label: "Pattern", icon: <PieChartIcon className="w-4 h-4" /> },
   { id: "advanced", label: "Advanced", icon: <Sparkles className="w-4 h-4" /> },
   { id: "prediction", label: "Prediksi", icon: <Sparkles className="w-4 h-4 text-amber-500" /> },
+  { id: "journey", label: "Journey", icon: <Route className="w-4 h-4 text-cyan-600" /> },
   { id: "statistics", label: "Statistics", icon: <BarChart3 className="w-4 h-4" /> },
 ];
 
@@ -1124,6 +1127,12 @@ export function Dashboard({ initialSnapshots, initialAnalysis }: DashboardProps)
                 }))
               )}
               totalResults={analysis.totalResults}
+            />
+          )}
+          {activeTab === "journey" && (
+            <HistoryJourneyPanel 
+              snapshots={snapshots}
+              selectedSnapshotId={activeSnapshotId}
             />
           )}
           {activeTab === "statistics" && <StatisticsTab analysis={analysis} />}
