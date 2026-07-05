@@ -4,8 +4,7 @@ import sharp from "sharp";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
-import { extractValid4D } from "@/lib/validation";
-import { normalizeOCRDigits } from "@/lib/ocr-text";
+import { extractFourDigitNumbers, cleanOCRText } from "@/lib/ocr-text";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,7 +17,7 @@ const supported = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]
  * 
  * Pipeline:
  * 1. Grayscale conversion
- * 2. Resize if too large (for performance)
+ * 2. Output as PNG (lossless)
  */
 async function preprocessImage(buffer: Buffer): Promise<Buffer> {
   const MAX_DIMENSION = 1920;
@@ -37,8 +36,8 @@ async function preprocessImage(buffer: Buffer): Promise<Buffer> {
     image = image.resize(width, height, { kernel: "lanczos3" });
   }
   
-  // Simple grayscale preprocessing - preserves clean images without artifacts
-  return image.grayscale().jpeg({ quality: 90 }).toBuffer();
+  // Grayscale + PNG (lossless for better OCR)
+  return image.grayscale().png().toBuffer();
 }
 
 export async function POST(request: NextRequest) {
@@ -69,21 +68,19 @@ export async function POST(request: NextRequest) {
     if (!supported.has(file.type)) return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: "File too large" }, { status: 400 });
 
-    // Preprocess image (grayscale conversion)
+    // Preprocess image (grayscale + PNG for lossless)
     const originalBuffer = Buffer.from(await file.arrayBuffer());
     const preprocessedBuffer = await preprocessImage(originalBuffer);
     
-    const base64Image = `data:image/jpeg;base64,${preprocessedBuffer.toString('base64')}`;
+    const base64Image = `data:image/png;base64,${preprocessedBuffer.toString('base64')}`;
 
     const worker = await createWorker("eng");
-    let normalizedText = "";
     let rawText = "";
     let confidence = 0;
 
     try {
       // Optimized Tesseract parameters for 4D OCR
-      // CRITICAL FIX: Changed from PSM.SINGLE_LINE (7) to PSM.SINGLE_BLOCK (6)
-      // SINGLE_BLOCK is best for images with multiple numbers per row
+      // PSM.SINGLE_BLOCK is best for images with multiple numbers per row
       await worker.setParameters({
         tessedit_char_whitelist: "0123456789 ", // Only digits and spaces
         tessedit_pageseg_mode: PSM.SINGLE_BLOCK, // Best for multiple numbers per image
@@ -95,12 +92,14 @@ export async function POST(request: NextRequest) {
       const { data } = await worker.recognize(base64Image);
       rawText = data.text;
       confidence = data.confidence;
-      normalizedText = normalizeOCRDigits(data.text);
     } finally {
       await worker.terminate();
     }
 
-    const numbers = extractValid4D(normalizedText);
+    // Clean OCR text and extract 4D numbers with smart reconstruction
+    const cleanedText = cleanOCRText(rawText);
+    const numbers = extractFourDigitNumbers(cleanedText);
+    
     if (numbers.length > 0) {
       await prisma.result.createMany({
         data: numbers.map((resultNumber) => ({ 
@@ -116,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       numbers, 
-      text: normalizedText, 
+      text: cleanedText, 
       rawText,
       confidence,
       extracted: numbers.length,
