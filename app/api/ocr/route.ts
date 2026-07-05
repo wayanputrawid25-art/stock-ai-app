@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createWorker, PSM } from "tesseract.js";
+import sharp from "sharp";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
@@ -10,6 +11,35 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const supported = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+
+/**
+ * Preprocess image for 4D OCR
+ * Optimized for screenshot images with bold black digits on light background
+ * 
+ * Pipeline:
+ * 1. Grayscale conversion
+ * 2. Resize if too large (for performance)
+ */
+async function preprocessImage(buffer: Buffer): Promise<Buffer> {
+  const MAX_DIMENSION = 1920;
+  
+  let image = sharp(buffer, { density: 300 });
+  const metadata = await image.metadata();
+  
+  // Resize if too large (maintain aspect ratio)
+  let width = metadata.width || 720;
+  let height = metadata.height || 1359;
+  
+  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+    const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+    image = image.resize(width, height, { kernel: "lanczos3" });
+  }
+  
+  // Simple grayscale preprocessing - preserves clean images without artifacts
+  return image.grayscale().jpeg({ quality: 90 }).toBuffer();
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,8 +69,11 @@ export async function POST(request: NextRequest) {
     if (!supported.has(file.type)) return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: "File too large" }, { status: 400 });
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const base64Image = `data:${file.type};base64,${buffer.toString('base64')}`;
+    // Preprocess image (grayscale conversion)
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
+    const preprocessedBuffer = await preprocessImage(originalBuffer);
+    
+    const base64Image = `data:image/jpeg;base64,${preprocessedBuffer.toString('base64')}`;
 
     const worker = await createWorker("eng");
     let normalizedText = "";
@@ -48,13 +81,15 @@ export async function POST(request: NextRequest) {
     let confidence = 0;
 
     try {
+      // Optimized Tesseract parameters for 4D OCR
+      // CRITICAL FIX: Changed from PSM.SINGLE_LINE (7) to PSM.SINGLE_BLOCK (6)
+      // SINGLE_BLOCK is best for images with multiple numbers per row
       await worker.setParameters({
-        tessedit_char_whitelist: "0123456789",
-        tessedit_pageseg_mode: PSM.SINGLE_LINE,
+        tessedit_char_whitelist: "0123456789 ", // Only digits and spaces
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK, // Best for multiple numbers per image
         preserve_interword_spaces: "1",
-        tessedit_image_baseline: "0.0",
-        textord_min_xheight: "10",
-        textord_max_xheight: "300",
+        textord_min_xheight: "15",
+        textord_max_xheight: "500",
       });
       
       const { data } = await worker.recognize(base64Image);
