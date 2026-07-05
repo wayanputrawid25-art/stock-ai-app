@@ -17,7 +17,8 @@ const supported = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]
  * 
  * Pipeline:
  * 1. Grayscale conversion
- * 2. Output as PNG (lossless)
+ * 2. Binary threshold at 20 (captures ONLY very dark/bold pixels)
+ * 3. Negate (black text on white background)
  */
 async function preprocessImage(buffer: Buffer): Promise<Buffer> {
   const MAX_DIMENSION = 1920;
@@ -36,8 +37,15 @@ async function preprocessImage(buffer: Buffer): Promise<Buffer> {
     image = image.resize(width, height, { kernel: "lanczos3" });
   }
   
-  // Grayscale + PNG (lossless for better OCR)
-  return image.grayscale().png().toBuffer();
+  // Grayscale + strict threshold (20) + negate
+  // Threshold 20 captures ONLY the boldest/darkest pixels
+  // This filters out gray text and noise
+  return image
+    .grayscale()
+    .threshold(20)
+    .negate()
+    .png()
+    .toBuffer();
 }
 
 export async function POST(request: NextRequest) {
@@ -68,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (!supported.has(file.type)) return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     if (file.size > 10 * 1024 * 1024) return NextResponse.json({ error: "File too large" }, { status: 400 });
 
-    // Preprocess image (grayscale + PNG for lossless)
+    // Preprocess image (grayscale + threshold 20 + negate for bold-only OCR)
     const originalBuffer = Buffer.from(await file.arrayBuffer());
     const preprocessedBuffer = await preprocessImage(originalBuffer);
     
