@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputModal } from "@/components/InputModal";
+import { GenerateNumberModal } from "@/components/GenerateNumberModal";
 
 interface Snapshot {
   id: string;
@@ -87,6 +88,7 @@ export default function InputPage() {
   const [analysis, setAnalysis] = useState<CompositionResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [showInputModal, setShowInputModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const fetchSnapshots = useCallback(async () => {
     try {
@@ -147,7 +149,6 @@ export default function InputPage() {
         </div>
         <button
           onClick={() => setShowInputModal(true)}
-          className="sm:ml-auto"
         >
           <Card className="bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary-light transition-all cursor-pointer shadow-md">
             <CardContent className="py-3 px-5">
@@ -160,6 +161,26 @@ export default function InputPage() {
                 <div className="text-left">
                   <p className="text-white font-semibold text-sm">Input Data</p>
                   <p className="text-white/80 text-xs">Upload gambar atau manual</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </button>
+        <button
+          onClick={() => setShowGenerateModal(true)}
+          className="sm:ml-2"
+        >
+          <Card className="bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-600 hover:to-emerald-500 transition-all cursor-pointer shadow-md">
+            <CardContent className="py-3 px-5">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0-6v6m18-6v6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-semibold text-sm">Generate</p>
+                  <p className="text-white/80 text-xs">Buat kombinasi</p>
                 </div>
               </div>
             </CardContent>
@@ -380,6 +401,12 @@ export default function InputPage() {
         isOpen={showInputModal} 
         onClose={() => setShowInputModal(false)}
         buttonLabel="Simpan Data"
+      />
+      
+      {/* Generate Number Modal */}
+      <GenerateNumberModal 
+        isOpen={showGenerateModal} 
+        onClose={() => setShowGenerateModal(false)}
       />
     </div>
   );
