@@ -175,8 +175,7 @@ export function getPatternOccurrences(
 export function runBacktest(
   digits: number[],
   order: OrderDepth,
-  trainingSize: number,
-  topCount: PredictionTop
+  trainingSize: number
 ): BacktestResult {
   if (digits.length <= trainingSize + order) {
     return {
@@ -304,8 +303,7 @@ export function analyzeHistoryJourney(
   results: { resultNumber: string; drawDate: Date | string }[],
   position: Position,
   orderDepth: OrderDepth,
-  trainingSize: TrainingSize,
-  topCount: PredictionTop = 1
+  trainingSize: TrainingSize
 ): HistoryJourneyAnalysis {
   // Sort results by date (newest first)
   const sorted = [...results].sort((a, b) => {
@@ -372,7 +370,7 @@ export function analyzeHistoryJourney(
   patternFrequency.sort((a, b) => b.count - a.count);
 
   // Run backtest (use all but last 1 as training, predict last)
-  const backtest = runBacktest(digits, orderDepth, Math.max(50, digits.length - 20), topCount);
+  const backtest = runBacktest(digits, orderDepth, Math.max(50, digits.length - 20));
 
   return {
     position,

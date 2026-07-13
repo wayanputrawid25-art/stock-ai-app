@@ -5,8 +5,7 @@ import {
   analyzeHistoryJourney,
   Position,
   OrderDepth,
-  TrainingSize,
-  PredictionTop
+  TrainingSize
 } from "@/lib/history-journey";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +18,6 @@ export async function GET(request: NextRequest) {
     const position = searchParams.get("position") as Position;
     const orderDepth = parseInt(searchParams.get("orderDepth") || "1") as OrderDepth;
     const trainingSize = searchParams.get("trainingSize") as TrainingSize;
-    const topCount = parseInt(searchParams.get("topCount") || "1") as PredictionTop;
 
     if (!snapshotId) {
       return NextResponse.json({ error: "Snapshot ID is required" }, { status: 400 });
@@ -61,8 +59,7 @@ export async function GET(request: NextRequest) {
       results,
       position,
       orderDepth,
-      trainingSize || "all",
-      topCount || 1
+      trainingSize || "all"
     );
 
     return NextResponse.json({

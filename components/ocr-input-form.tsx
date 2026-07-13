@@ -121,7 +121,7 @@ export function OcrInputForm({ buttonLabel }: OcrInputFormProps) {
         setSelectedSnapshot(snapshotFromUrl);
       }
     }
-  }, [urlSnapshotId, snapshots]);
+  }, [urlSnapshotId, snapshots, selectedSnapshot?.id]);
 
   const loadSnapshots = async () => {
     try {

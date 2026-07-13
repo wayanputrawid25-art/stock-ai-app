@@ -149,7 +149,7 @@ export function analyzeSum(results: ResultRecord[]): SumAnalysisResult {
     sorted.forEach((r) => {
       totalDigit += parseInt(r.resultNumber[idx], 10);
     });
-    const avgDigit = total / total > 0 ? totalDigit / total : 0;
+    const avgDigit = sorted.length > 0 ? totalDigit / sorted.length : 0;
 
     // Dominant digit
     let dominantDigit = 0;

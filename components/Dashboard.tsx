@@ -18,7 +18,7 @@ import {
   GitBranch, Search, ArrowUpDown,
   BarChart3, Clock, Table2,
   SlidersHorizontal, ArrowLeftRight,
-  Map, Route
+  Route
 } from "lucide-react";
 
 // Types
@@ -1131,7 +1131,6 @@ export function Dashboard({ initialSnapshots, initialAnalysis }: DashboardProps)
           )}
           {activeTab === "journey" && (
             <HistoryJourneyPanel 
-              snapshots={snapshots}
               selectedSnapshotId={activeSnapshotId}
             />
           )}

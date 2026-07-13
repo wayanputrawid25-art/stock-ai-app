@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // GET - List all users
 export async function GET() {
   try {
-    const admin = await requireUser(Role.ADMIN);
+    await requireUser(Role.ADMIN);
     
     const users = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputModal } from "@/components/InputModal";
 
@@ -88,11 +88,7 @@ export default function InputPage() {
   const [loading, setLoading] = useState(false);
   const [showInputModal, setShowInputModal] = useState(false);
 
-  useEffect(() => {
-    fetchSnapshots();
-  }, []);
-
-  const fetchSnapshots = async () => {
+  const fetchSnapshots = useCallback(async () => {
     try {
       const response = await fetch("/api/snapshots");
       if (response.ok) {
@@ -105,9 +101,9 @@ export default function InputPage() {
     } catch (error) {
       console.error("Failed to fetch snapshots:", error);
     }
-  };
+  }, [selectedSnapshotId]);
 
-  const fetchAnalysis = async (snapshotId: string) => {
+  const fetchAnalysis = useCallback(async (snapshotId: string) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/dashboard/digit-composition?snapshot=${snapshotId}`);
@@ -120,13 +116,17 @@ export default function InputPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSnapshots();
+  }, [fetchSnapshots]);
 
   useEffect(() => {
     if (selectedSnapshotId) {
       fetchAnalysis(selectedSnapshotId);
     }
-  }, [selectedSnapshotId]);
+  }, [selectedSnapshotId, fetchAnalysis]);
 
   const currentSnapshot = snapshots.find(s => s.id === selectedSnapshotId);
 

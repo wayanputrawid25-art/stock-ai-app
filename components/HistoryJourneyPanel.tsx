@@ -19,13 +19,6 @@ type OrderDepth = 1 | 2 | 3;
 type TrainingSize = "50" | "100" | "200" | "all";
 type PredictionTop = 1 | 3 | 5;
 
-interface Snapshot {
-  id: string;
-  title: string;
-  color: string;
-  _count?: { results: number };
-}
-
 interface Prediction {
   digit: number;
   count: number;
@@ -95,10 +88,8 @@ const POSITION_LABELS: Record<Position, string> = {
 };
 
 export function HistoryJourneyPanel({ 
-  snapshots, 
   selectedSnapshotId 
 }: { 
-  snapshots: Snapshot[];
   selectedSnapshotId: string | null;
 }) {
   // State
@@ -150,22 +141,13 @@ export function HistoryJourneyPanel({
     if (selectedSnapshotId) {
       runAnalysis();
     }
-  }, [selectedSnapshotId]);
-
-  // Format order depth label
-  const getOrderLabel = (order: OrderDepth) => {
-    switch (order) {
-      case 1: return "Order-1 (1 digit)";
-      case 2: return "Order-2 (2 digits)";
-      case 3: return "Order-3 (3 digits)";
-    }
-  };
+  }, [selectedSnapshotId, runAnalysis]);
 
   // Render summary view
   const renderSummary = () => {
     if (!analysis) return null;
 
-    const { predictions, backtest, currentPattern, patternFrequency } = analysis;
+    const { predictions, backtest, currentPattern } = analysis;
 
     return (
       <div className="space-y-6">

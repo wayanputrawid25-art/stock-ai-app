@@ -78,15 +78,6 @@ const DEFAULT_WEIGHTS: IndicatorWeights = {
 // ============================================================================
 
 /**
- * Normalize value ke skala 0-100
- */
-function normalize(value: number, min: number, max: number): number {
-  if (max === min) return 50; // Default jika semua sama
-  const normalized = ((value - min) / (max - min)) * 100;
-  return Math.max(0, Math.min(100, normalized));
-}
-
-/**
  * Calculate frequency score (0-100)
  * Menggunakan rank-based scoring (digit yang lebih sering muncul mendapat skor lebih tinggi)
  */

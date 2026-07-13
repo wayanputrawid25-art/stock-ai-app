@@ -110,10 +110,6 @@ function formatDate(date: Date | string): Date {
   return typeof date === "string" ? new Date(date) : date;
 }
 
-function sortByCountDesc(a: { count: number }, b: { count: number }): number {
-  return b.count - a.count;
-}
-
 function isOdd(n: number): boolean {
   return n % 2 === 1;
 }
@@ -238,17 +234,6 @@ export function analyzeGap(records: ResultRecord[]): GapAnalysis[] {
     sorted.forEach((r, i) => {
       gaps[parseInt(r.resultNumber[idx])].push(i);
     });
-    
-    const maxGap = Math.max(...Array.from({ length: 10 }, (_, d) => {
-      if (gaps[d].length > 1) {
-        let max = 0;
-        for (let i = 1; i < gaps[d].length; i++) {
-          max = Math.max(max, gaps[d][i] - gaps[d][i - 1]);
-        }
-        return max;
-      }
-      return total;
-    }));
     
     const data = Array.from({ length: 10 }, (_, digit) => {
       const appearances = gaps[digit];
@@ -504,7 +489,6 @@ export function getMissingChartData(records: ResultRecord[]): MissingChart {
 
 export function getPositionStatsChart(records: ResultRecord[]): PositionStatsChart[] {
   const pattern = analyzePattern(records);
-  const frequency = analyzeFrequency(records);
   
   return POSITIONS.map((pos, idx) => {
     const digits = records.map(r => parseInt(r.resultNumber[idx]));

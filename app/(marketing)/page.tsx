@@ -102,7 +102,7 @@ export default async function HomePage() {
                   { name: "KOP", value: 82, color: "from-secondary to-secondary-light" },
                   { name: "KEPALA", value: 73, color: "from-info to-cyan-400" },
                   { name: "EKOR", value: 64, color: "from-success to-emerald-400" },
-                ].map((item, index) => (
+                ].map((item) => (
                   <div key={item.name} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{item.name}</span>

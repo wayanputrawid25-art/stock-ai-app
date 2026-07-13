@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
-import { LoadingState } from "@/components/LoadingState";
 import { InputModal } from "@/components/InputModal";
 import {
   Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis
@@ -16,7 +15,6 @@ import {
   getDifferenceDistribution,
   getHotDigits,
   getColdDigits,
-  getStableDigits,
   POSITION_KEY_MAP,
   type AnalysisResult,
   type Position,
@@ -102,23 +100,6 @@ function Icon({ type, className = "" }: { type: "upload" | "check" | "alert" | "
       <path d={paths[type] || paths.upload} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
-}
-
-// OCR Correction map
-const OCR_CORRECTIONS: Record<string, string> = {
-  O: "0", o: "0",
-  I: "1", l: "1", "|": "1",
-  Z: "2", z: "2",
-  S: "5", s: "5",
-  B: "8",
-};
-
-function cleanOCRText(text: string): string {
-  let corrected = text;
-  for (const [wrong, correct] of Object.entries(OCR_CORRECTIONS)) {
-    corrected = corrected.split(wrong).join(correct);
-  }
-  return corrected.replace(/[^0-9\n]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 // Digit Badge Component - Mobile optimized
@@ -224,12 +205,11 @@ function AnalysisTable({ position, differences, analysis }: { position: Position
 }
 
 // Statistics Component - Mobile optimized with DIFFERENCE logic
-function StatisticsCard({ position, stats, hotDigits, coldDigits, stableDigits }: { 
+function StatisticsCard({ position, stats, hotDigits, coldDigits }: { 
   position: Position; 
   stats: AnalysisResult["statistics"][PositionKey]; 
   hotDigits: number[];
   coldDigits: number[];
-  stableDigits: number[];
 }) {
   const positionColors = {
     AS: { from: "from-primary", to: "to-primary-light", text: "text-primary" },
@@ -545,28 +525,24 @@ export function DifferenceAnalyzer({ initialSnapshots }: { initialSnapshots: Sna
                 stats={analysis.statistics.as} 
                 hotDigits={getHotDigits(analysis, "AS")} 
                 coldDigits={getColdDigits(analysis, "AS")}
-                stableDigits={getStableDigits(analysis, "AS")}
               />
               <StatisticsCard 
                 position="KOP" 
                 stats={analysis.statistics.kop} 
                 hotDigits={getHotDigits(analysis, "KOP")} 
                 coldDigits={getColdDigits(analysis, "KOP")}
-                stableDigits={getStableDigits(analysis, "KOP")}
               />
               <StatisticsCard 
                 position="KEPALA" 
                 stats={analysis.statistics.kepala} 
                 hotDigits={getHotDigits(analysis, "KEPALA")} 
                 coldDigits={getColdDigits(analysis, "KEPALA")}
-                stableDigits={getStableDigits(analysis, "KEPALA")}
               />
               <StatisticsCard 
                 position="EKOR" 
                 stats={analysis.statistics.ekor} 
                 hotDigits={getHotDigits(analysis, "EKOR")} 
                 coldDigits={getColdDigits(analysis, "EKOR")}
-                stableDigits={getStableDigits(analysis, "EKOR")}
               />
             </div>
           </CollapsibleSection>

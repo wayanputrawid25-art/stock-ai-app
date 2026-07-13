@@ -27,9 +27,7 @@ export function SnapshotSelector({ snapshots, activeSnapshotId, onSnapshotChange
   // Update selected when prop changes
   useEffect(() => {
     const newId = activeSnapshotId || urlSnapshotId || "";
-    if (newId !== selectedId) {
-      setSelectedId(newId);
-    }
+    setSelectedId(current => current !== newId ? newId : current);
   }, [activeSnapshotId, urlSnapshotId]);
 
   const handleChange = async (snapshotId: string) => {
