@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
 import { InputModal } from "@/components/InputModal";
+import { GenerateNumberModal } from "@/components/GenerateNumberModal";
 import { PredictionPanel } from "@/components/PredictionPanel";
 import { HistoryJourneyPanel } from "@/components/HistoryJourneyPanel";
 import { generatePrediction } from "@/lib/prediction";
@@ -989,6 +990,7 @@ export function Dashboard({ initialSnapshots, initialAnalysis }: DashboardProps)
   const [analysis, setAnalysis] = useState<Analysis | null>(initialAnalysis ?? null);
   const [isLoading, setIsLoading] = useState(false);
   const [showInputModal, setShowInputModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const fetchAnalysis = useCallback(async (snapshotId: string | null) => {
     if (!snapshotId) {
@@ -1088,6 +1090,17 @@ export function Dashboard({ initialSnapshots, initialAnalysis }: DashboardProps)
             </svg>
             Input Data
           </Button>
+          
+          {/* Generate Button */}
+          <Button 
+            onClick={() => setShowGenerateModal(true)} 
+            className="gap-2 bg-emerald-500 hover:bg-emerald-600"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0-6v6m18-6v6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Generate
+          </Button>
         </div>
       </div>
 
@@ -1156,6 +1169,12 @@ export function Dashboard({ initialSnapshots, initialAnalysis }: DashboardProps)
         isOpen={showInputModal}
         onClose={() => setShowInputModal(false)}
         buttonLabel="Simpan Data"
+      />
+      
+      {/* Generate Number Modal */}
+      <GenerateNumberModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
       />
     </div>
   );
